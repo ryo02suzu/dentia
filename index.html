@@ -400,6 +400,49 @@
     .spinner{animation-duration:1.2s;}
     .caret{animation:none;}
   }
+
+  /* ── ログイン/記録（追加・既存トークンに合わせた新規クラスのみ） ── */
+  .splash{min-height:100vh; display:grid; place-items:center; background:var(--bg);}
+  .auth{min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--bg);}
+  .auth-card{width:100%; max-width:420px;}
+  .auth-head{display:flex; flex-direction:column; align-items:center; gap:9px; margin-bottom:6px; text-align:center;}
+  .auth-head .mark{width:44px; height:44px;}
+  .auth-head .word{font-family:"Outfit",sans-serif; font-weight:600; font-size:27px; letter-spacing:-.02em; color:var(--ink); line-height:1;}
+  .auth-head .word b{color:var(--primary-dark); font-weight:700;}
+  .auth-head p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;}
+  .auth .tabs{margin-bottom:18px; border-radius:12px;}
+  .auth input{
+    width:100%; border:1.5px solid var(--line); border-radius:var(--radius-sm);
+    background:#FBFDFD; padding:13px 14px; font-family:inherit; font-size:14.5px; color:var(--ink);
+    transition:border-color .18s, box-shadow .18s, background .18s;
+  }
+  .auth input::placeholder{color:#A9BEC4;}
+  .auth input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-tint); background:#fff;}
+  .auth .field-label{margin-top:14px;}
+  .auth-err{margin-top:13px; color:#B5392B; background:#FDECEA; border:1px solid #F5C6C0; border-radius:10px; padding:9px 12px; font-size:13px;}
+  .auth-msg{margin-top:13px; color:var(--primary-deep); background:var(--primary-tint); border:1px solid var(--primary-soft); border-radius:10px; padding:9px 12px; font-size:13px;}
+
+  .topbar-right .btn-ghost{padding:8px 12px; font-size:12.5px;}
+
+  /* 保存カルテ オーバーレイ */
+  .sheet{position:fixed; inset:0; z-index:80; background:var(--bg); overflow-y:auto;}
+  .sheet-head{position:sticky; top:0; z-index:1; background:rgba(242,247,248,.92);
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+  .sheet-head .bar{display:flex; align-items:center; gap:12px; padding:15px 0;}
+  .sheet-head h2{margin:0; font-size:16px; font-weight:700; letter-spacing:.01em;}
+  .sheet-head .sp{margin-left:auto;}
+  .sheet-body{padding-top:24px; padding-bottom:56px;}
+  .rec-list{display:flex; flex-direction:column; gap:10px;}
+  .rec-item{display:flex; align-items:center; gap:14px; padding:14px 16px;
+    border:1px solid var(--line); border-radius:14px; background:var(--surface); cursor:pointer;
+    transition:border-color .15s, box-shadow .15s;}
+  .rec-item:hover{border-color:var(--primary-soft); box-shadow:var(--shadow-soft);}
+  .rec-item .ri-main{min-width:0; flex:1;}
+  .rec-item .ri-tmpl{font-weight:700; font-size:14px; color:var(--ink);}
+  .rec-item .ri-snip{color:var(--ink-soft); font-size:12.5px; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rec-item .ri-date{flex:0 0 auto; color:var(--ink-faint); font-size:12px; font-family:"Outfit",sans-serif;}
+  .rec-empty{padding:48px 20px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.8;}
 </style>
 </head>
 <body>
@@ -408,6 +451,8 @@
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <!-- Supabase（認証・DB）。anonキーはクライアント用途で、データ保護はRLSで担保 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script type="text/babel">
 // @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
@@ -965,8 +1010,10 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density":"ゆったり"
 }/*EDITMODE-END*/;
 
-function App(){
+function App({ sb=null, session=null }){
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const authEnabled = !!(sb && session);
+  const [showRecords, setShowRecords] = useState(false);
 
   const [tmpl, setTmpl] = useState("first");
   const [convo, setConvo] = useState(DATA.first.convo);
@@ -1074,11 +1121,22 @@ function App(){
       setGenTime(((Date.now()-started)/1000).toFixed(1));
       setPhase("done");
       animateSoap(soap);
+
+      // 生成結果をログインユーザーに紐づけて保存（RLSで本人の行のみ）。失敗しても生成は妨げない。
+      if(sb && session){
+        sb.from("records").insert({
+          template: tmpl, transcript: text, memo,
+          s: soap[0], o: soap[1], a: soap[2], p: soap[3],
+        }).then(({error})=>{
+          if(error){ console.error("save error:", error); showToast("カルテの保存に失敗しました"); }
+          else { showToast("カルテを保存しました"); }
+        });
+      }
     }catch(err){
       setPhase("error");
       setErrMsg(err.message || "サーバーに接続できませんでした。サーバーが起動しているか確認してください。");
     }
-  },[convo, memo, tmpl]);
+  },[convo, memo, tmpl, sb, session]);
 
   // 最新の runGeneration を保持（録音停止時のコールバックから最新テンプレ等で呼ぶため）
   const genRef = useRef();
@@ -1173,9 +1231,17 @@ function App(){
         </div>
         <div className="topbar-right">
           <span className="who">
-            <span className="avatar">DC</span>
-            <span>田中デンタルクリニック</span>
+            <span className="avatar">{authEnabled ? session.user.email.slice(0,2).toUpperCase() : "DC"}</span>
+            <span>{authEnabled ? session.user.email : "田中デンタルクリニック"}</span>
           </span>
+          {authEnabled && (
+            <React.Fragment>
+              <button className="btn btn-ghost" onClick={()=>setShowRecords(true)}>
+                <Ico.doc stroke="currentColor"/> 保存カルテ
+              </button>
+              <button className="btn btn-ghost" onClick={()=>sb.auth.signOut()}>ログアウト</button>
+            </React.Fragment>
+          )}
         </div>
       </header>
 
@@ -1388,6 +1454,10 @@ function App(){
         <Ico.check stroke="currentColor"/> {toast||""}
       </div>
 
+      {authEnabled && showRecords && (
+        <RecordsView sb={sb} onClose={()=>setShowRecords(false)} />
+      )}
+
       <TweaksPanel>
         <TweakSection label="配色テーマ" />
         <TweakRadio label="テーマ" value={t.theme}
@@ -1404,7 +1474,219 @@ function App(){
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ───────────────── 認証・記録（追加） ───────────────── */
+
+function translateAuthError(e){
+  const m = (e && e.message) || "";
+  if(/Invalid login credentials/i.test(m)) return "メールアドレスまたはパスワードが正しくありません。";
+  if(/already registered|already exists/i.test(m)) return "このメールアドレスは既に登録されています。ログインしてください。";
+  if(/Password should be at least/i.test(m)) return "パスワードは6文字以上にしてください。";
+  if(/Email not confirmed/i.test(m)) return "メール確認が完了していません。確認メールのリンクを承認してください。";
+  if(/rate limit|too many/i.test(m)) return "試行回数が多すぎます。しばらくしてからお試しください。";
+  return m || "認証に失敗しました。";
+}
+
+function Splash(){
+  return <div className="splash"><div className="spinner"></div></div>;
+}
+
+function AuthScreen({ sb }){
+  const [mode, setMode] = useState("login"); // login | signup
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const submit = async (e)=>{
+    e.preventDefault();
+    setErr(""); setMsg(""); setBusy(true);
+    try{
+      if(mode==="signup"){
+        const { data, error } = await sb.auth.signUp({ email, password: pw });
+        if(error) throw error;
+        if(!data.session) setMsg("確認メールを送信しました。メール内のリンクを承認してからログインしてください。");
+        // セッションが返ればonAuthStateChangeで自動的に本体へ遷移
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+        if(error) throw error;
+      }
+    }catch(e2){
+      setErr(translateAuthError(e2));
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="auth">
+      <div className="auth-card panel">
+        <div className="in-body">
+          <div className="auth-head">
+            <span className="mark"><Ico.tooth stroke="#fff"/></span>
+            <span className="word">dent<b>ia</b></span>
+            <p>歯科専用AIカルテ — ログインしてご利用ください</p>
+          </div>
+          <div className="tabs">
+            <button type="button" className={"tab"+(mode==="login"?" on":"")}
+              onClick={()=>{setMode("login");setErr("");setMsg("");}}>ログイン</button>
+            <button type="button" className={"tab"+(mode==="signup"?" on":"")}
+              onClick={()=>{setMode("signup");setErr("");setMsg("");}}>新規登録</button>
+          </div>
+          <form onSubmit={submit}>
+            <label className="field-label" htmlFor="email">メールアドレス</label>
+            <input id="email" type="email" autoComplete="email" required
+              value={email} onChange={e=>setEmail(e.target.value)} placeholder="dentist@example.com"/>
+            <label className="field-label" htmlFor="pw">パスワード</label>
+            <input id="pw" type="password" required minLength={6}
+              autoComplete={mode==="signup"?"new-password":"current-password"}
+              value={pw} onChange={e=>setPw(e.target.value)} placeholder="6文字以上"/>
+            {err && <div className="auth-err">{err}</div>}
+            {msg && <div className="auth-msg">{msg}</div>}
+            <div className="gen-row">
+              <button type="submit" className="btn btn-primary" disabled={busy || !email || pw.length<6}>
+                {busy ? "処理中…" : (mode==="signup" ? "新規登録してはじめる" : "ログイン")}
+              </button>
+            </div>
+          </form>
+          <div className="res-foot" style={{padding:"15px 0 2px", borderTop:"none"}}>
+            <Ico.lock stroke="currentColor"/>
+            <span>診療情報を扱うため、アカウントごとにデータを保護しています。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecordsView({ sb, onClose }){
+  const [rows, setRows] = useState(null); // null=loading
+  const [err, setErr] = useState("");
+  const [sel, setSel] = useState(null);
+
+  useEffect(()=>{
+    let alive = true;
+    sb.from("records").select("*").order("created_at",{ascending:false})
+      .then(({data,error})=>{
+        if(!alive) return;
+        if(error){ setErr(error.message); setRows([]); }
+        else setRows(data||[]);
+      });
+    return ()=>{ alive=false; };
+  },[sb]);
+
+  const fmtDate = (s)=>{
+    try{ return new Date(s).toLocaleString("ja-JP",
+      {year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+    catch(_){ return s; }
+  };
+  const tmplLabel = (id)=>{ const m = TEMPLATES.find(x=>x.id===id); return m?m.label:(id||"—"); };
+
+  const del = async (id)=>{
+    const { error } = await sb.from("records").delete().eq("id", id);
+    if(!error){ setRows(rs=>(rs||[]).filter(r=>r.id!==id)); setSel(null); }
+  };
+
+  return (
+    <div className="sheet">
+      <div className="sheet-head">
+        <div className="page bar">
+          {sel
+            ? <button className="btn btn-ghost" onClick={()=>setSel(null)}>← 一覧へ</button>
+            : <h2>保存したカルテ</h2>}
+          <button className="btn btn-ghost sp" onClick={onClose}>閉じる</button>
+        </div>
+      </div>
+      <div className="page sheet-body">
+        {rows===null && (
+          <div className="loading"><div className="spinner"></div><div className="ltxt">読み込み中…</div></div>
+        )}
+        {rows && err && <div className="rec-empty">読み込みに失敗しました：{err}</div>}
+        {rows && !err && rows.length===0 && (
+          <div className="rec-empty">保存されたカルテはまだありません。<br/>録音または手入力でSOAPを生成すると、ここに自動で保存されます。</div>
+        )}
+
+        {rows && !err && !sel && rows.length>0 && (
+          <div className="rec-list">
+            {rows.map(r=>(
+              <div key={r.id} className="rec-item" onClick={()=>setSel(r)}>
+                <div className="ri-main">
+                  <div className="ri-tmpl">{tmplLabel(r.template)}</div>
+                  <div className="ri-snip">{(r.s||r.transcript||"").slice(0,80)}</div>
+                </div>
+                <div className="ri-date">{fmtDate(r.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sel && (
+          <div>
+            <div className="col-head" style={{marginBottom:14}}>
+              <h2>{tmplLabel(sel.template)}・SOAPカルテ</h2>
+              <span className="hint">{fmtDate(sel.created_at)}</span>
+            </div>
+            <div className="soap">
+              {BLOCKS.map(b=>{
+                const val = {S:sel.s,O:sel.o,A:sel.a,P:sel.p}[b.key] || "";
+                return (
+                  <div key={b.key} className="block show"
+                    style={{"--blk":b.color,"--blk-deep":b.deep,"--blk-tint":b.tint}}>
+                    <div className="block-head">
+                      <span className="badge">{b.key}</span>
+                      <span className="labels">
+                        <span className="en">{b.en}</span>
+                        <span className="jp">{b.jp}</span>
+                      </span>
+                    </div>
+                    <div className="block-body">{val}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="res-foot">
+              <Ico.check stroke="var(--p-color)"/>
+              <span>内容をご確認のうえ、加筆・修正してご利用ください。</span>
+              <button className="btn btn-ghost" style={{marginLeft:"auto"}} onClick={()=>del(sel.id)}>削除</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Root(){
+  const [cfg, setCfg] = useState(null);            // null=未取得
+  const [sb, setSb] = useState(null);              // supabaseクライアント or null
+  const [session, setSession] = useState(undefined); // undefined=判定中, null=未ログイン, obj=ログイン中
+
+  useEffect(()=>{
+    let alive = true;
+    fetch("/api/config").then(r=>r.json()).then(c=>{
+      if(!alive) return;
+      c = c || {};
+      setCfg(c);
+      if(c.supabaseUrl && c.supabaseAnonKey && window.supabase){
+        const client = window.supabase.createClient(c.supabaseUrl, c.supabaseAnonKey);
+        setSb(client);
+        client.auth.getSession().then(({data})=>{ if(alive) setSession(data.session||null); });
+        client.auth.onAuthStateChange((_e, s)=>{ if(alive) setSession(s||null); });
+      } else {
+        setSession(null); // 認証未設定 → ログイン無しの従来モード
+      }
+    }).catch(()=>{ if(alive){ setCfg({}); setSession(null); } });
+    return ()=>{ alive=false; };
+  },[]);
+
+  const authEnabled = !!(cfg && cfg.supabaseUrl && cfg.supabaseAnonKey && sb);
+
+  if(cfg===null || session===undefined) return <Splash/>;
+  if(authEnabled && !session) return <AuthScreen sb={sb}/>;
+  return <App sb={authEnabled ? sb : null} session={authEnabled ? session : null}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
   </script>
 </body>
 </html>
