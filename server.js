@@ -1,25 +1,38 @@
 /**
- * dentia — 会話 → 歯科SOAP生成 用の軽量バックエンド
+ * dentia — 録音/会話 → 歯科SOAP生成 用の軽量バックエンド
  *
- * - 静的フロント（index.html）を配信
- * - POST /api/generate で会話テキストを Anthropic Claude API に送り、
- *   歯科SOAP（S / O / A / P）の下書きを生成して返す
+ * 2段構成のAI連携：
+ *  - AI① 文字起こし：POST /api/transcribe  音声 → テキスト（OpenAI Whisper / whisper-1）
+ *  - AI② SOAP生成 ：POST /api/generate    テキスト → 歯科SOAP（Anthropic Claude）
+ * 流れ：録音 →【AI① Whisper】→ 文字起こし →【AI② Claude】→ 歯科SOAP
  *
- * APIキーは .env の ANTHROPIC_API_KEY で管理（直書き禁止）。
+ * APIキーは .env で管理（直書き禁止）：ANTHROPIC_API_KEY / OPENAI_API_KEY
+ *
+ * 医療データの取り扱い：音声はメモリ上で受け取り、文字起こし後は破棄する。
+ *   ディスクへの永続保存は行わない（multer の memoryStorage を使用）。
  */
 
 require("dotenv").config();
 
 const path = require("path");
 const express = require("express");
+const multer = require("multer");
 const Anthropic = require("@anthropic-ai/sdk");
+const OpenAI = require("openai");
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+const TRANSCRIBE_MODEL = process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1";
 const PORT = process.env.PORT || 3000;
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(__dirname));
+
+// 音声はメモリ上のみで保持（ディスクに保存しない＝医療データを残さない）。Whisper上限の25MBに合わせる。
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
 
 /* ------------------------------------------------------------------ *
  * テンプレート（処置別）ごとの追加プロンプト
@@ -164,15 +177,86 @@ app.post("/api/generate", async (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------ *
+ * AI① 文字起こしエンドポイント（OpenAI Whisper）
+ *   音声を受け取り、日本語で文字起こししたテキストを返す。
+ *   ここで返したテキストを、フロントが既存の /api/generate に渡す。
+ * ------------------------------------------------------------------ */
+
+// 歯科用語の認識を少しでも助けるための軽いヒント（今後の精度改善対象）
+const TRANSCRIBE_PROMPT =
+  "歯科診療の会話です。歯式（#46 など）、う蝕、抜髄、根管治療、SRP、プロービング、" +
+  "打診痛、冷水痛、EPT、補綴、クラウン、インレーなどの歯科用語が含まれます。";
+
+app.post("/api/transcribe", upload.single("audio"), async (req, res) => {
+  if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
+    return res.status(400).json({ error: "音声データがありません。" });
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({
+      error:
+        "OPENAI_API_KEY が設定されていません。.env に OPENAI_API_KEY を設定してください（.env.example を参照）。",
+    });
+  }
+
+  try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // メモリ上のバッファを直接 File 化（ディスクに書き出さない）
+    const file = await OpenAI.toFile(
+      req.file.buffer,
+      req.file.originalname || "audio.webm"
+    );
+    const tr = await openai.audio.transcriptions.create({
+      file,
+      model: TRANSCRIBE_MODEL,
+      language: "ja",
+      prompt: TRANSCRIBE_PROMPT,
+    });
+    return res.json({ text: tr.text || "" });
+    // req.file.buffer はレスポンス後にGCで破棄される。ディスクには残さない（医療データのため）。
+  } catch (err) {
+    console.error("[transcribe] error:", err);
+    const status = err.status || 500;
+    const message =
+      err.status === 401
+        ? "OPENAI_API_KEY が無効です。設定を確認してください。"
+        : err.message || "文字起こし中にエラーが発生しました。";
+    return res.status(status).json({ error: message });
+  }
+});
+
+// ファイルサイズ超過などの multer エラーを分かりやすく返す
+app.use((err, _req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const msg =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "録音が長すぎます（25MBまで）。短く録り直してください。"
+        : "音声アップロードでエラーが発生しました。";
+    return res.status(400).json({ error: msg });
+  }
+  next(err);
+});
+
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, model: MODEL, hasKey: !!process.env.ANTHROPIC_API_KEY });
+  res.json({
+    ok: true,
+    model: MODEL,
+    transcribeModel: TRANSCRIBE_MODEL,
+    hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`dentia server: http://localhost:${PORT}`);
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn(
-      "⚠️  ANTHROPIC_API_KEY が未設定です。.env を作成して設定してください（.env.example を参照）。"
+      "⚠️  ANTHROPIC_API_KEY が未設定です（SOAP生成に必要）。.env を確認してください。"
+    );
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn(
+      "⚠️  OPENAI_API_KEY が未設定です（録音の文字起こしに必要）。.env を確認してください。"
     );
   }
 });
