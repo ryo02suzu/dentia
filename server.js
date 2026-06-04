@@ -14,7 +14,7 @@ const path = require("path");
 const express = require("express");
 const Anthropic = require("@anthropic-ai/sdk");
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 const PORT = process.env.PORT || 3000;
 
 const app = express();
