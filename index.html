@@ -971,7 +971,7 @@ function App(){
   const [tmpl, setTmpl] = useState("first");
   const [convo, setConvo] = useState(DATA.first.convo);
   const [memo, setMemo] = useState("");
-  const [inputMode, setInputMode] = useState("paste");
+  const [inputMode, setInputMode] = useState("record"); // 録音を主たる入力に
 
   const [phase, setPhase] = useState("idle"); // idle | loading | done | error
   const [revealed, setRevealed] = useState(-1);
@@ -981,8 +981,17 @@ function App(){
   const [errMsg, setErrMsg] = useState("");
   const [toast, setToast] = useState(null);
 
+  // 録音まわりの状態
+  const [recState, setRecState] = useState("idle"); // idle | recording | transcribing | error
+  const [recSec, setRecSec] = useState(0);
+  const [recErr, setRecErr] = useState("");
+
   const timers = useRef([]);
   const resultRef = useRef(["","","",""]); // APIから受け取ったSOAP本文
+  const mediaRec = useRef(null);            // MediaRecorder
+  const chunks = useRef([]);                // 録音データ片
+  const streamRef = useRef(null);           // マイクのMediaStream
+  const recTimer = useRef(null);            // 経過時間タイマー
 
   useEffect(()=>{
     const th = THEMES[t.theme] || THEMES.clear;
@@ -997,7 +1006,11 @@ function App(){
   },[t.fontScale, t.density]);
 
   const clearTimers = ()=>{ timers.current.forEach(clearTimeout); timers.current=[]; };
-  useEffect(()=>()=>{ clearTimers(); },[]);
+  useEffect(()=>()=>{
+    clearTimers();
+    if(recTimer.current) clearInterval(recTimer.current);
+    if(streamRef.current) streamRef.current.getTracks().forEach(tr=>tr.stop());
+  },[]);
   const push = (fn,ms)=>timers.current.push(setTimeout(fn,ms));
 
   const showToast = (msg)=>{ setToast(msg); push(()=>setToast(null), 2000); };
@@ -1035,8 +1048,10 @@ function App(){
     })(0);
   };
 
-  const runGeneration = useCallback(async ()=>{
-    if(!convo.trim()) return;
+  const runGeneration = useCallback(async (overrideConvo)=>{
+    // 録音フローからは文字起こしテキストを直接渡す（state更新の反映待ちを避ける）
+    const text = (typeof overrideConvo === "string" && overrideConvo.trim()) ? overrideConvo : convo;
+    if(!text.trim()) return;
     clearTimers();
     setInputMode("paste");
     setErrMsg("");
@@ -1049,7 +1064,7 @@ function App(){
       const res = await fetch("/api/generate", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ conversation: convo, memo, template: tmpl }),
+        body: JSON.stringify({ conversation: text, memo, template: tmpl }),
       });
       const data = await res.json().catch(()=>({}));
       if(!res.ok){
@@ -1065,6 +1080,75 @@ function App(){
     }
   },[convo, memo, tmpl]);
 
+  // 最新の runGeneration を保持（録音停止時のコールバックから最新テンプレ等で呼ぶため）
+  const genRef = useRef();
+  genRef.current = runGeneration;
+
+  /* ---- 録音 → 文字起こし(Whisper) → SOAP生成 の配線 ---- */
+  const stopStream = ()=>{
+    if(streamRef.current){ streamRef.current.getTracks().forEach(tr=>tr.stop()); streamRef.current=null; }
+  };
+
+  // 録音停止後：音声をサーバへ送り文字起こし → 既存のSOAP生成へ自動接続
+  const handleTranscribe = async ()=>{
+    setRecState("transcribing");
+    stopStream();
+    const mime = (mediaRec.current && mediaRec.current.mimeType) || "audio/webm";
+    const ext = mime.includes("mp4")?"mp4":mime.includes("ogg")?"ogg":mime.includes("wav")?"wav":"webm";
+    const blob = new Blob(chunks.current, { type: mime });
+    chunks.current = [];
+    if(blob.size===0){ setRecState("error"); setRecErr("録音データが空でした。もう一度お試しください。"); return; }
+    try{
+      const fd = new FormData();
+      fd.append("audio", blob, "recording."+ext);
+      const res = await fetch("/api/transcribe", { method:"POST", body: fd });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || `文字起こしに失敗しました（HTTP ${res.status}）`);
+      const text = (data.text||"").trim();
+      if(!text){ setRecState("error"); setRecErr("音声から文字を認識できませんでした。はっきり話して、もう一度お試しください。"); return; }
+      setRecState("idle");
+      setConvo(text);          // 文字起こし結果を手入力欄へ（確認・修正できる保険）
+      setInputMode("paste");
+      genRef.current(text);    // 続けて自動でSOAP生成
+    }catch(err){
+      setRecState("error");
+      setRecErr(err.message || "文字起こしに失敗しました。通信状況をご確認ください。");
+    }
+  };
+
+  const startRecording = async ()=>{
+    setRecErr("");
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder==="undefined"){
+      setRecState("error"); setRecErr("このブラウザは録音に対応していません。手入力をご利用ください。"); return;
+    }
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      streamRef.current = stream;
+      chunks.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.current.push(e.data); };
+      mr.onstop = ()=>{ handleTranscribe(); };
+      mediaRec.current = mr;
+      mr.start();
+      setRecState("recording"); setRecSec(0);
+      recTimer.current = setInterval(()=>setRecSec(s=>s+1), 1000);
+    }catch(err){
+      stopStream();
+      setRecState("error");
+      setRecErr("マイクを使用できませんでした。ブラウザのマイク許可（設定）をご確認ください。");
+    }
+  };
+
+  const stopRecording = ()=>{
+    if(recTimer.current){ clearInterval(recTimer.current); recTimer.current=null; }
+    if(mediaRec.current && mediaRec.current.state!=="inactive"){ mediaRec.current.stop(); }
+  };
+
+  const toggleRecord = ()=>{
+    if(recState==="recording") stopRecording();
+    else startRecording();
+  };
+
   const copyAll = ()=>{
     const soap = resultRef.current;
     const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]||""}`).join("\n\n");
@@ -1074,7 +1158,7 @@ function App(){
 
   const pasteEMR = ()=> showToast("レセコンへ転記しました（デモ）");
 
-  const canGen = convo.trim().length>0 && phase!=="loading";
+  const canGen = convo.trim().length>0 && phase!=="loading" && recState!=="recording" && recState!=="transcribing";
   const live = phase==="done";
   const curTmpl = TEMPLATES.find(x=>x.id===tmpl);
 
@@ -1110,11 +1194,12 @@ function App(){
           </div>
           <div className="panel">
             <div className="tabs">
-              <button className={"tab"+(inputMode==="paste"?" on":"")} onClick={()=>setInputMode("paste")}>
-                <Ico.doc stroke="currentColor"/> 会話を貼り付け
-              </button>
               <button className={"tab"+(inputMode==="record"?" on":"")} onClick={()=>setInputMode("record")}>
-                <Ico.mic stroke="currentColor"/> 録音して入力
+                {recState==="recording" ? <span className="rdot"></span> : <Ico.mic stroke="currentColor"/>}
+                録音して入力
+              </button>
+              <button className={"tab"+(inputMode==="paste"?" on":"")} onClick={()=>setInputMode("paste")}>
+                <Ico.doc stroke="currentColor"/> 手入力
               </button>
             </div>
 
@@ -1136,16 +1221,42 @@ function App(){
 
               {inputMode==="record" && (
                 <div className="rec-wrap">
-                  <button className="mic-btn" disabled style={{opacity:.5, cursor:"default"}}>
-                    <Ico.mic stroke="#fff"/>
-                  </button>
-                  <div className="rec-hint">録音入力は準備中です</div>
-                  <div className="rec-sub">
-                    近日対応予定です。現在は「会話を貼り付け」からSOAPを生成できます。
-                  </div>
-                  <button className="btn btn-ghost" onClick={()=>setInputMode("paste")}>
-                    <Ico.doc stroke="currentColor"/> 会話を貼り付けに切り替え
-                  </button>
+                  {recState==="idle" && (
+                    <React.Fragment>
+                      <button className="mic-btn" onClick={toggleRecord}><Ico.mic stroke="#fff"/></button>
+                      <div className="rec-hint">タップして録音を開始</div>
+                      <div className="rec-sub">診療中の会話をそのまま録音 → 自動で文字起こし・SOAP生成</div>
+                    </React.Fragment>
+                  )}
+                  {recState==="recording" && (
+                    <div className="rec-live">
+                      <button className="mic-btn rec" onClick={toggleRecord}><span className="mic-stop"></span></button>
+                      <div className="wave">
+                        {WAVE_H.map((h,i)=>(
+                          <i key={i} style={{"--h":h+"px", animationDelay:(i*0.06)+"s"}}></i>
+                        ))}
+                      </div>
+                      <div className="rec-time"><span className="live-dot"></span>{fmtTime(recSec)}</div>
+                      <div className="rec-sub">録音中… もう一度タップで停止</div>
+                    </div>
+                  )}
+                  {recState==="transcribing" && (
+                    <div className="transcribe">
+                      <div className="spinner"></div>
+                      <div className="ttxt">文字起こし中…</div>
+                      <div className="rec-sub">音声を歯科用語に対応して変換しています</div>
+                    </div>
+                  )}
+                  {recState==="error" && (
+                    <React.Fragment>
+                      <button className="mic-btn" onClick={toggleRecord}><Ico.mic stroke="#fff"/></button>
+                      <div className="rec-hint">録音できませんでした</div>
+                      <div className="rec-sub">{recErr}</div>
+                      <button className="btn btn-ghost" onClick={()=>setInputMode("paste")}>
+                        <Ico.doc stroke="currentColor"/> 手入力に切り替え
+                      </button>
+                    </React.Fragment>
+                  )}
                 </div>
               )}
 
@@ -1170,7 +1281,7 @@ function App(){
               </div>
 
               <div className="gen-row">
-                <button className="btn btn-primary" onClick={runGeneration} disabled={!canGen}>
+                <button className="btn btn-primary" onClick={()=>runGeneration()} disabled={!canGen}>
                   {phase==="loading"
                     ? <>生成中…</>
                     : <><Ico.spark fill="#fff"/> {curTmpl.label}のSOAPを生成</>}
@@ -1223,7 +1334,7 @@ function App(){
                   </span>
                   <h3>生成に失敗しました</h3>
                   <p>{errMsg}</p>
-                  <button className="btn btn-ghost" onClick={runGeneration} disabled={!canGen}>
+                  <button className="btn btn-ghost" onClick={()=>runGeneration()} disabled={!canGen}>
                     もう一度試す
                   </button>
                 </div>
