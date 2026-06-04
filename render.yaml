@@ -1,0 +1,17 @@
+# Render Blueprint — dentia
+# Render の「New > Blueprint」でこのリポジトリを選ぶと、この設定で
+# Node の Web サービスが作成されます。
+# ANTHROPIC_API_KEY は sync:false なので、リポジトリには保存されず
+# Render のダッシュボードで入力します（秘匿管理）。
+services:
+  - type: web
+    name: dentia
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ANTHROPIC_API_KEY
+        sync: false

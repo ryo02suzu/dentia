@@ -68,6 +68,18 @@ npm run dev
 
 ---
 
+## ウェブに公開する（Render）
+
+バックエンド（`server.js`）が動くホスティングが必要です。リポジトリに `render.yaml` を同梱しているので、[Render](https://render.com/) で簡単に公開できます。
+
+1. Render にログイン（GitHub 連携）
+2. **New ＋ → Blueprint** を選び、この `dentia` リポジトリを選択（`render.yaml` を自動で読み込みます）
+3. デプロイ時に環境変数 **`ANTHROPIC_API_KEY`** の入力を求められるので、Anthropic のキーを設定（リポジトリには保存されません）
+4. 発行された公開URL（例: `https://dentia.onrender.com`）にアクセス
+
+> Blueprint を使わず手動で作る場合は、Web Service を作成し、Build Command に `npm install`、Start Command に `npm start`、環境変数に `ANTHROPIC_API_KEY` を設定すればOKです。
+> 無料プランはアクセスが無いとスリープし、初回アクセスが数十秒かかることがあります。
+
 ## 構成
 
 | ファイル | 役割 |
