@@ -1,0 +1,19 @@
+{
+  "name": "dentia",
+  "version": "0.9.0",
+  "private": true,
+  "description": "歯科専用AIカルテ下書き生成（会話→歯科SOAP）",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

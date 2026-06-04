@@ -972,19 +972,17 @@ function App(){
   const [convo, setConvo] = useState(DATA.first.convo);
   const [memo, setMemo] = useState("");
   const [inputMode, setInputMode] = useState("paste");
-  const [recState, setRecState] = useState("idle");
-  const [recSec, setRecSec] = useState(0);
 
-  const [phase, setPhase] = useState("idle");
+  const [phase, setPhase] = useState("idle"); // idle | loading | done | error
   const [revealed, setRevealed] = useState(-1);
   const [typed, setTyped] = useState(["","","",""]);
   const [activeIdx, setActiveIdx] = useState(-1);
   const [genTime, setGenTime] = useState(null);
+  const [errMsg, setErrMsg] = useState("");
   const [toast, setToast] = useState(null);
 
   const timers = useRef([]);
-  const recTimer = useRef(null);
-  const dataRef = useRef(DATA.first);
+  const resultRef = useRef(["","","",""]); // APIから受け取ったSOAP本文
 
   useEffect(()=>{
     const th = THEMES[t.theme] || THEMES.clear;
@@ -999,7 +997,7 @@ function App(){
   },[t.fontScale, t.density]);
 
   const clearTimers = ()=>{ timers.current.forEach(clearTimeout); timers.current=[]; };
-  useEffect(()=>()=>{ clearTimers(); clearInterval(recTimer.current); },[]);
+  useEffect(()=>()=>{ clearTimers(); },[]);
   const push = (fn,ms)=>timers.current.push(setTimeout(fn,ms));
 
   const showToast = (msg)=>{ setToast(msg); push(()=>setToast(null), 2000); };
@@ -1007,48 +1005,19 @@ function App(){
   const pickTemplate = (id)=>{
     setTmpl(id);
     setConvo(DATA[id].convo);
-    setPhase("idle"); setGenTime(null); setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
+    setPhase("idle"); setGenTime(null); setRevealed(-1); setActiveIdx(-1);
+    setTyped(["","","",""]); setErrMsg("");
     clearTimers();
   };
 
-  const toggleRecord = ()=>{
-    if(recState==="idle"){
-      setRecState("recording"); setRecSec(0);
-      recTimer.current = setInterval(()=>setRecSec(s=>s+1), 1000);
-    } else if(recState==="recording"){
-      clearInterval(recTimer.current);
-      setRecState("transcribing");
-      push(()=>{
-        setConvo(dataRef.current.convo);
-        setRecState("idle");
-        setInputMode("paste");
-        showToast("文字起こしが完了しました");
-      }, 2100);
-    }
-  };
-
-  useEffect(()=>{ dataRef.current = DATA[tmpl]; },[tmpl]);
-
-  const runGeneration = useCallback(()=>{
-    clearTimers();
-    setInputMode("paste");
-    setPhase("loading"); setGenTime(null);
-    setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
-
+  // APIから受け取った soap[] を1ブロックずつタイプ表示する
+  const animateSoap = (soap)=>{
+    resultRef.current = soap;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const soap = dataRef.current.soap;
-    const tinfo = TEMPLATES.find(x=>x.id===tmpl);
-
-    push(()=>{
-      setPhase("done");
-      setGenTime(tinfo ? tinfo.time : "4.2");
-      streamBlock(0);
-    }, reduce ? 400 : 1700);
-
-    function streamBlock(i){
+    (function streamBlock(i){
       if(i>=BLOCKS.length){ setActiveIdx(-1); return; }
       setRevealed(i); setActiveIdx(i);
-      const full = soap[i];
+      const full = soap[i] || "";
       if(reduce){
         setTyped(prev=>{ const n=[...prev]; n[i]=full; return n; });
         push(()=>streamBlock(i+1), 200);
@@ -1063,19 +1032,49 @@ function App(){
         else { push(()=>streamBlock(i+1), 340); }
       };
       push(step, 240);
+    })(0);
+  };
+
+  const runGeneration = useCallback(async ()=>{
+    if(!convo.trim()) return;
+    clearTimers();
+    setInputMode("paste");
+    setErrMsg("");
+    setPhase("loading"); setGenTime(null);
+    setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
+    resultRef.current = ["","","",""];
+
+    const started = Date.now();
+    try{
+      const res = await fetch("/api/generate", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ conversation: convo, memo, template: tmpl }),
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok){
+        throw new Error(data.error || `生成に失敗しました（HTTP ${res.status}）`);
+      }
+      const soap = [data.S||"", data.O||"", data.A||"", data.P||""];
+      setGenTime(((Date.now()-started)/1000).toFixed(1));
+      setPhase("done");
+      animateSoap(soap);
+    }catch(err){
+      setPhase("error");
+      setErrMsg(err.message || "サーバーに接続できませんでした。サーバーが起動しているか確認してください。");
     }
-  },[tmpl]);
+  },[convo, memo, tmpl]);
 
   const copyAll = ()=>{
-    const soap = dataRef.current.soap;
-    const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]}`).join("\n\n");
+    const soap = resultRef.current;
+    const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]||""}`).join("\n\n");
     if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
     showToast("SOAPカルテをコピーしました");
   };
 
   const pasteEMR = ()=> showToast("レセコンへ転記しました（デモ）");
 
-  const canGen = convo.trim().length>0 && phase!=="loading" && recState==="idle";
+  const canGen = convo.trim().length>0 && phase!=="loading";
   const live = phase==="done";
   const curTmpl = TEMPLATES.find(x=>x.id===tmpl);
 
@@ -1115,8 +1114,7 @@ function App(){
                 <Ico.doc stroke="currentColor"/> 会話を貼り付け
               </button>
               <button className={"tab"+(inputMode==="record"?" on":"")} onClick={()=>setInputMode("record")}>
-                {recState==="recording" ? <span className="rdot"></span> : <Ico.mic stroke="currentColor"/>}
-                録音して入力
+                <Ico.mic stroke="currentColor"/> 録音して入力
               </button>
             </div>
 
@@ -1138,32 +1136,16 @@ function App(){
 
               {inputMode==="record" && (
                 <div className="rec-wrap">
-                  {recState==="idle" && (
-                    <React.Fragment>
-                      <button className="mic-btn" onClick={toggleRecord}><Ico.mic stroke="#fff"/></button>
-                      <div className="rec-hint">タップして録音を開始</div>
-                      <div className="rec-sub">診療中の会話をそのまま録音 → 自動で文字起こし</div>
-                    </React.Fragment>
-                  )}
-                  {recState==="recording" && (
-                    <div className="rec-live">
-                      <button className="mic-btn rec" onClick={toggleRecord}><span className="mic-stop"></span></button>
-                      <div className="wave">
-                        {WAVE_H.map((h,i)=>(
-                          <i key={i} style={{"--h":h+"px", animationDelay:(i*0.06)+"s"}}></i>
-                        ))}
-                      </div>
-                      <div className="rec-time"><span className="live-dot"></span>{fmtTime(recSec)}</div>
-                      <div className="rec-sub">録音中… もう一度タップで停止</div>
-                    </div>
-                  )}
-                  {recState==="transcribing" && (
-                    <div className="transcribe">
-                      <div className="spinner"></div>
-                      <div className="ttxt">文字起こし中…</div>
-                      <div className="rec-sub">音声を歯科用語に対応して変換しています</div>
-                    </div>
-                  )}
+                  <button className="mic-btn" disabled style={{opacity:.5, cursor:"default"}}>
+                    <Ico.mic stroke="#fff"/>
+                  </button>
+                  <div className="rec-hint">録音入力は準備中です</div>
+                  <div className="rec-sub">
+                    近日対応予定です。現在は「会話を貼り付け」からSOAPを生成できます。
+                  </div>
+                  <button className="btn btn-ghost" onClick={()=>setInputMode("paste")}>
+                    <Ico.doc stroke="currentColor"/> 会話を貼り付けに切り替え
+                  </button>
                 </div>
               )}
 
@@ -1234,6 +1216,19 @@ function App(){
                 </div>
               )}
 
+              {phase==="error" && (
+                <div className="empty">
+                  <span className="glyph" style={{background:"#FDECEA", borderColor:"#F5C6C0", color:"#E0574B"}}>
+                    <Ico.doc stroke="currentColor"/>
+                  </span>
+                  <h3>生成に失敗しました</h3>
+                  <p>{errMsg}</p>
+                  <button className="btn btn-ghost" onClick={runGeneration} disabled={!canGen}>
+                    もう一度試す
+                  </button>
+                </div>
+              )}
+
               {phase==="done" && (
                 <div className="soap">
                   {BLOCKS.map((b,i)=>(
@@ -1249,7 +1244,7 @@ function App(){
                       </div>
                       <div className="block-body">
                         {typed[i]}
-                        {activeIdx===i && typed[i].length<dataRef.current.soap[i].length && <span className="caret"></span>}
+                        {activeIdx===i && typed[i].length<(resultRef.current[i]||"").length && <span className="caret"></span>}
                       </div>
                     </div>
                   ))}
