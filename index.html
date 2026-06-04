@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>dentia — AIカルテ下書き生成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --primary:#0E9AA7;
+    --primary-dark:#0B7C87;
+    --primary-deep:#0A5E68;
+    --primary-tint:#E8F6F7;
+    --primary-soft:#D4ECEE;
+    --header-grad-a:#0E9AA7;
+    --header-grad-b:#0B7C87;
+    --rec:#E0574B;
+
+    --bg:#F2F7F8;
+    --surface:#FFFFFF;
+    --ink:#16323A;
+    --ink-soft:#4A636B;
+    --ink-faint:#8AA0A6;
+    --line:#E2EAEC;
+    --line-soft:#EDF2F3;
+
+    --s-color:#0E9AA7;
+    --o-color:#3A7FC4;
+    --a-color:#5E6BC4;
+    --p-color:#2BA17A;
+
+    --radius:18px;
+    --radius-sm:12px;
+    --shadow-card:0 1px 2px rgba(16,50,58,.04), 0 8px 28px -12px rgba(16,50,58,.16);
+    --shadow-soft:0 1px 2px rgba(16,50,58,.04), 0 2px 10px -6px rgba(16,50,58,.12);
+    --fs:16px;
+    --pad-scale:1;
+    --maxw:1280px;
+
+    font-family:"Zen Kaku Gothic New", system-ui, sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-size:var(--fs);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .latin{font-family:"Outfit", sans-serif;}
+
+  .page{max-width:var(--maxw); margin:0 auto; padding:0 clamp(20px,4vw,56px);}
+
+  /* header */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 0 18px;
+  }
+  .brand{display:flex; align-items:center; gap:11px;}
+  .brand .mark{
+    width:38px; height:38px; flex:0 0 auto;
+    display:grid; place-items:center;
+    border-radius:11px;
+    background:linear-gradient(150deg, var(--primary), var(--primary-dark));
+    box-shadow:0 6px 16px -7px var(--primary-dark);
+  }
+  .brand .mark svg{width:21px; height:21px; display:block;}
+  .brand .word{
+    font-family:"Outfit",sans-serif; font-weight:600;
+    font-size:25px; letter-spacing:-.02em; color:var(--ink);
+    line-height:1;
+  }
+  .brand .word b{color:var(--primary-dark); font-weight:700;}
+  .beta{
+    font-family:"Outfit",sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:.04em; color:var(--primary-dark);
+    background:var(--primary-tint); border:1px solid var(--primary-soft);
+    padding:3px 8px; border-radius:999px; margin-left:4px; transform:translateY(-1px);
+  }
+  .spec{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:700; color:var(--primary-deep);
+    background:var(--primary-tint); border:1px solid var(--primary-soft);
+    padding:4px 10px 4px 8px; border-radius:999px; margin-left:6px;
+  }
+  .spec svg{width:14px;height:14px;}
+  .topbar-right{display:flex; align-items:center; gap:18px; color:var(--ink-soft); font-size:13.5px;}
+  .topbar-right .who{display:flex; align-items:center; gap:8px;}
+  .topbar-right .avatar{
+    width:30px;height:30px;border-radius:50%;
+    background:linear-gradient(150deg,var(--primary-soft),var(--primary-tint));
+    border:1px solid var(--primary-soft);
+    display:grid;place-items:center; color:var(--primary-deep); font-weight:700; font-size:12px;
+    font-family:"Outfit",sans-serif;
+  }
+
+  /* hero */
+  .hero{
+    padding:6px 0 26px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:26px;
+  }
+  .hero h1{
+    margin:0 0 7px;
+    font-size:clamp(22px,2.5vw,30px); font-weight:900; letter-spacing:-.01em;
+    line-height:1.35;
+  }
+  .hero h1 .accent{color:var(--primary-dark);}
+  .hero p{margin:0; color:var(--ink-soft); font-size:14.5px; max-width:62ch;}
+
+  /* 2-col layout */
+  .work{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);
+    gap:clamp(18px,2.4vw,30px);
+    align-items:start;
+    padding-bottom:64px;
+  }
+  @media (max-width:920px){
+    .work{grid-template-columns:1fr;}
+  }
+
+  .col-head{display:flex; align-items:center; gap:9px; margin:0 0 13px; padding-left:2px;}
+  .col-head .step{
+    width:22px;height:22px;border-radius:7px;
+    background:var(--primary); color:#fff;
+    font-family:"Outfit",sans-serif; font-weight:600; font-size:12px;
+    display:grid;place-items:center;
+  }
+  .col-head h2{margin:0; font-size:15px; font-weight:700; letter-spacing:.01em;}
+  .col-head .hint{margin-left:auto; color:var(--ink-faint); font-size:12.5px;}
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-card);
+  }
+
+  /* input tabs */
+  .tabs{
+    display:flex; gap:6px; padding:7px 8px 0;
+    border-bottom:1px solid var(--line-soft);
+    background:linear-gradient(180deg,#FBFDFD,#fff);
+    border-radius:var(--radius) var(--radius) 0 0;
+  }
+  .tab{
+    flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;
+    color:var(--ink-faint); background:transparent; border:none;
+    padding:13px 10px 15px; border-radius:11px 11px 0 0;
+    border-bottom:2.5px solid transparent; margin-bottom:-1px;
+    transition:color .16s, background .16s, border-color .16s;
+  }
+  .tab svg{width:16px;height:16px;}
+  .tab:hover{color:var(--primary-dark); background:var(--primary-tint);}
+  .tab.on{color:var(--primary-deep); border-bottom-color:var(--primary);}
+  .tab .rdot{width:7px;height:7px;border-radius:50%;background:var(--rec);
+    box-shadow:0 0 0 3px rgba(224,87,75,.18); animation:pulse 1.1s ease-in-out infinite;}
+  @keyframes pulse{50%{opacity:.45;}}
+
+  /* input panel */
+  .in-body{padding:calc(22px*var(--pad-scale));}
+  .field-label{
+    display:flex; align-items:center; gap:7px;
+    font-size:13.5px; font-weight:700; color:var(--ink);
+    margin:0 0 9px;
+  }
+  .field-label .req{
+    font-size:10.5px; font-weight:600; color:var(--primary-dark);
+    background:var(--primary-tint); padding:2px 7px; border-radius:999px; letter-spacing:.02em;
+  }
+  .field-label .opt{
+    font-size:10.5px; font-weight:500; color:var(--ink-faint);
+    background:var(--line-soft); padding:2px 7px; border-radius:999px;
+  }
+  textarea.ta{
+    width:100%; resize:vertical;
+    border:1.5px solid var(--line); border-radius:var(--radius-sm);
+    background:#FBFDFD;
+    padding:15px 16px; font-family:inherit; font-size:14.5px; line-height:1.8; color:var(--ink);
+    transition:border-color .18s, box-shadow .18s, background .18s;
+  }
+  textarea.ta::placeholder{color:#A9BEC4;}
+  textarea.ta:focus{
+    outline:none; border-color:var(--primary);
+    box-shadow:0 0 0 4px var(--primary-tint); background:#fff;
+  }
+  #convo{min-height:248px;}
+  #memo{min-height:78px;}
+  .stack{margin-top:20px;}
+
+  /* record UI */
+  .rec-wrap{
+    min-height:248px; border:1.5px dashed var(--primary-soft); border-radius:var(--radius-sm);
+    background:linear-gradient(180deg,#FBFEFE,#F3FAFB);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:24px; gap:16px;
+  }
+  .mic-btn{
+    width:96px;height:96px;border-radius:50%; cursor:pointer; border:none;
+    display:grid;place-items:center; position:relative;
+    background:linear-gradient(150deg,var(--primary),var(--primary-dark));
+    box-shadow:0 14px 30px -12px var(--primary-dark);
+    transition:transform .12s, box-shadow .2s;
+  }
+  .mic-btn:hover{transform:translateY(-2px); box-shadow:0 18px 36px -12px var(--primary-dark);}
+  .mic-btn:active{transform:translateY(0);}
+  .mic-btn svg{width:38px;height:38px;color:#fff;}
+  .mic-btn.rec{background:linear-gradient(150deg,#EC6357,var(--rec));}
+  .mic-btn.rec::before{content:""; position:absolute; inset:-8px; border-radius:50%;
+    border:2px solid var(--rec); opacity:.45; animation:ring 1.4s ease-out infinite;}
+  @keyframes ring{0%{transform:scale(.9);opacity:.5;}100%{transform:scale(1.25);opacity:0;}}
+  .mic-stop{width:26px;height:26px;border-radius:7px;background:#fff;}
+  .rec-hint{font-size:14px;font-weight:700;color:var(--ink-soft);}
+  .rec-sub{font-size:12.5px;color:var(--ink-faint); margin-top:-10px;}
+  .rec-live{display:flex;flex-direction:column;align-items:center;gap:13px;}
+  .rec-time{font-family:"Outfit",sans-serif; font-size:30px; font-weight:600;
+    letter-spacing:.02em; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .rec-time .live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;
+    background:var(--rec); margin-right:9px; vertical-align:middle;
+    box-shadow:0 0 0 4px rgba(224,87,75,.16); animation:pulse 1.1s ease-in-out infinite;}
+  .wave{display:flex;align-items:center;gap:3px;height:42px;}
+  .wave i{width:3.5px;border-radius:99px;background:var(--primary);
+    animation:wv 1s ease-in-out infinite;}
+  @keyframes wv{0%,100%{height:8px;}50%{height:var(--h,28px);}}
+  .transcribe{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .transcribe .spinner{width:38px;height:38px;border-width:3px;}
+  .transcribe .ttxt{font-size:13.5px;font-weight:700;color:var(--ink-soft);}
+
+  /* template chips */
+  .tmpl-row{margin-top:20px;}
+  .tmpl-label{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;
+    color:var(--ink); margin-bottom:9px;}
+  .tmpl-label svg{width:15px;height:15px;color:var(--primary-dark);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    font-family:inherit; cursor:pointer; font-size:13px; font-weight:700;
+    color:var(--ink-soft); background:#fff; border:1.5px solid var(--line);
+    padding:9px 14px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:6px;
+    transition:all .15s;
+  }
+  .chip:hover{border-color:var(--primary-soft); color:var(--primary-dark); background:var(--primary-tint);}
+  .chip.on{background:var(--primary); border-color:var(--primary); color:#fff;
+    box-shadow:0 6px 14px -7px var(--primary-dark);}
+  .chip .tag{font-family:"Outfit",sans-serif; font-size:10.5px; opacity:.7; font-weight:600;}
+
+  .meta-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:9px; color:var(--ink-faint); font-size:12px;
+  }
+  .meta-row .priv{display:flex;align-items:center;gap:6px;}
+  .meta-row .priv svg{width:13px;height:13px;}
+
+  .gen-row{margin-top:22px; display:flex; gap:12px; align-items:center;}
+  .btn{
+    font-family:inherit; cursor:pointer; border:none;
+    border-radius:12px; font-weight:700; letter-spacing:.01em;
+    display:inline-flex; align-items:center; justify-content:center; gap:9px;
+    transition:transform .12s, box-shadow .18s, background .18s, color .18s, border-color .18s;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{
+    flex:1;
+    background:linear-gradient(150deg, var(--primary), var(--primary-dark));
+    color:#fff; padding:15px 20px; font-size:15.5px;
+    box-shadow:0 10px 22px -10px var(--primary-dark);
+  }
+  .btn-primary:hover{box-shadow:0 13px 26px -10px var(--primary-dark); filter:brightness(1.03);}
+  .btn-primary svg{width:18px;height:18px;}
+  .btn-primary:disabled{cursor:default; filter:grayscale(.25) brightness(1); opacity:.62; box-shadow:none;}
+  .btn-ghost{
+    background:#fff; color:var(--ink-soft); border:1.5px solid var(--line);
+    padding:13px 16px; font-size:13.5px;
+  }
+  .btn-ghost:hover{border-color:var(--primary-soft); color:var(--primary-dark); background:var(--primary-tint);}
+  .btn-ghost svg{width:15px;height:15px;}
+  .btn-emr{
+    background:linear-gradient(150deg,var(--primary),var(--primary-dark)); color:#fff;
+    padding:13px 16px; font-size:13.5px; box-shadow:0 8px 18px -10px var(--primary-dark);
+  }
+  .btn-emr:hover{filter:brightness(1.04); box-shadow:0 11px 22px -10px var(--primary-dark);}
+  .btn-emr svg{width:15px;height:15px;}
+  .btn-emr:disabled,.btn-ghost:disabled{opacity:.5; cursor:default; box-shadow:none;}
+
+  /* result panel */
+  .res-head{
+    display:flex; align-items:center; gap:12px;
+    padding:16px 20px; border-bottom:1px solid var(--line-soft);
+  }
+  .res-head .title{display:flex;align-items:center;gap:9px; font-weight:700; font-size:14.5px;}
+  .res-head .title .dot{width:8px;height:8px;border-radius:50%; background:var(--ink-faint);}
+  .res-head .title .dot.live{background:var(--p-color); box-shadow:0 0 0 4px rgba(43,161,122,.16);}
+  .time-badge{
+    display:inline-flex; align-items:center; gap:6px; margin-left:4px;
+    font-family:"Outfit",sans-serif; font-size:12px; font-weight:600;
+    color:var(--p-color); background:rgba(43,161,122,.1);
+    border:1px solid rgba(43,161,122,.22); padding:3px 9px 3px 7px; border-radius:999px;
+  }
+  .time-badge svg{width:13px;height:13px;}
+  .time-badge b{font-weight:700;}
+  .res-actions{margin-left:auto; display:flex; gap:9px;}
+  .res-body{padding:calc(20px*var(--pad-scale)); min-height:520px;}
+
+  /* empty state */
+  .empty{
+    height:480px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; color:var(--ink-faint); gap:16px; padding:20px;
+  }
+  .empty .glyph{
+    width:74px;height:74px;border-radius:20px;
+    background:var(--primary-tint); border:1px solid var(--primary-soft);
+    display:grid;place-items:center; color:var(--primary);
+  }
+  .empty .glyph svg{width:34px;height:34px;}
+  .empty h3{margin:0; font-size:16px; color:var(--ink-soft); font-weight:700;}
+  .empty p{margin:0; font-size:13.5px; max-width:34ch; line-height:1.7;}
+
+  /* loading */
+  .loading{
+    height:480px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:20px; text-align:center;
+  }
+  .spinner{
+    width:46px;height:46px;border-radius:50%;
+    border:3.5px solid var(--primary-tint);
+    border-top-color:var(--primary);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading .ltxt{font-size:14.5px; color:var(--ink-soft); font-weight:600;}
+  .loading .lsub{font-size:12.5px; color:var(--ink-faint); margin-top:-12px;}
+  .lbar{width:200px;height:5px;border-radius:99px;background:var(--line-soft); overflow:hidden;}
+  .lbar > i{display:block;height:100%;width:40%;border-radius:99px;
+    background:linear-gradient(90deg,var(--primary),var(--primary-dark));
+    animation:slide 1.1s ease-in-out infinite;}
+  @keyframes slide{0%{margin-left:-40%;}100%{margin-left:100%;}}
+
+  /* SOAP blocks */
+  .soap{display:flex; flex-direction:column; gap:14px;}
+  .block{
+    border:1px solid var(--line); border-radius:14px;
+    padding:15px 17px 16px; background:#fff;
+    opacity:0; transform:translateY(10px);
+    transition:opacity .45s ease, transform .45s ease, border-color .3s;
+  }
+  .block.show{opacity:1; transform:none;}
+  .block.active{border-color:var(--blk); box-shadow:0 0 0 3px var(--blk-tint);}
+  .block-head{display:flex; align-items:center; gap:11px; margin-bottom:9px;}
+  .badge{
+    width:34px;height:34px;flex:0 0 auto; border-radius:10px;
+    display:grid;place-items:center; color:#fff; font-weight:700; font-size:16px;
+    font-family:"Outfit",sans-serif;
+    background:var(--blk); box-shadow:0 5px 12px -5px var(--blk);
+  }
+  .block-head .labels{display:flex; flex-direction:column; line-height:1.25;}
+  .block-head .en{font-family:"Outfit",sans-serif; font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--blk-deep);}
+  .block-head .jp{font-size:14px; font-weight:700; color:var(--ink);}
+  .block-body{font-size:14.5px; line-height:1.85; color:var(--ink); white-space:pre-wrap;}
+  .caret{display:inline-block; width:2px; height:1.05em; background:var(--blk); vertical-align:-2px; margin-left:1px; animation:blink .9s steps(1) infinite; border-radius:2px;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .res-foot{
+    display:flex; align-items:center; gap:8px;
+    padding:13px 20px; border-top:1px solid var(--line-soft);
+    color:var(--ink-faint); font-size:12px;
+  }
+  .res-foot svg{width:14px;height:14px;}
+  .res-foot .ai-tag{
+    margin-left:auto; font-family:"Outfit",sans-serif; font-weight:500; letter-spacing:.02em;
+    color:var(--ink-faint);
+  }
+
+  /* action bar */
+  .action-bar{
+    display:flex; gap:11px; padding:14px 20px 18px;
+  }
+  .action-bar .btn-emr{flex:1.3;}
+  .action-bar .btn-ghost{flex:1;}
+
+  /* toast */
+  .toast{
+    position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; padding:11px 18px; border-radius:12px;
+    font-size:13.5px; font-weight:600; box-shadow:0 14px 34px -10px rgba(0,0,0,.4);
+    display:flex; align-items:center; gap:9px;
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:90;
+  }
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast svg{width:16px;height:16px; color:#7DE0C0;}
+
+  @media (prefers-reduced-motion: reduce){
+    .block{transition:opacity .2s;}
+    .spinner{animation-duration:1.2s;}
+    .caret{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel">
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+  .twk-chip:hover{transform:translateY(-1px);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i:first-child{box-shadow:none}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-omelette-chrome=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+  const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+  const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+  if (!fitsAsSegments) {
+    const resolve = (s) => {
+      const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+      return m === undefined ? s : typeof m === 'object' ? m.value : m;
+    };
+    return <TweakSelect label={label} value={value} options={options}
+                        onChange={(s) => onChange(resolve(s))} />;
+  }
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#', '');
+  const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+  const n = parseInt(x.slice(0, 6), 16);
+  if (Number.isNaN(n)) return true;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return r * 299 + g * 587 + b * 114 > 148000;
+}
+
+const __TwkCheck = ({ light }) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+  </svg>
+);
+
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value}
+               onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o, i) => {
+          const colors = Array.isArray(o) ? o : [o];
+          const [hero, ...rest] = colors;
+          const sup = rest.slice(0, 4);
+          const on = key(o) === cur;
+          return (
+            <button key={i} type="button" className="twk-chip" role="radio"
+                    aria-checked={on} data-on={on ? '1' : '0'}
+                    aria-label={colors.join(', ')} title={colors.join(' · ')}
+                    style={{ background: hero }}
+                    onClick={() => onChange(o)}>
+              {sup.length > 0 && (
+                <span>
+                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                </span>
+              )}
+              {on && <__TwkCheck light={__twkIsLight(hero)} />}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+  </script>
+
+  <script type="text/babel">
+/* dentia — 歯科専用AIカルテ下書き生成（デモ用プロトタイプ） */
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* color themes */
+const THEMES = {
+  clear: { label:"クリアティール", vars:{
+    "--primary":"#0E9AA7","--primary-dark":"#0B7C87","--primary-deep":"#0A5E68",
+    "--primary-tint":"#E8F6F7","--primary-soft":"#D4ECEE","--bg":"#F2F7F8" } },
+  deep: { label:"ディープティール", vars:{
+    "--primary":"#127C86","--primary-dark":"#0B5C66","--primary-deep":"#083F47",
+    "--primary-tint":"#E6F1F2","--primary-soft":"#CADFE2","--bg":"#EEF3F4" } },
+  azure: { label:"ティール×ブルー", vars:{
+    "--primary":"#1496BD","--primary-dark":"#0F77A0","--primary-deep":"#0B5A7C",
+    "--primary-tint":"#E7F4F9","--primary-soft":"#CDE8F1","--bg":"#F1F7FA" } },
+};
+
+const BLOCKS = [
+  { key:"S", en:"Subjective", jp:"主訴・問診", color:"#0E9AA7", deep:"#0A6B73", tint:"rgba(14,154,167,.13)" },
+  { key:"O", en:"Objective",  jp:"口腔内所見", color:"#3A7FC4", deep:"#2C5F94", tint:"rgba(58,127,196,.13)" },
+  { key:"A", en:"Assessment", jp:"評価・診断", color:"#5E6BC4", deep:"#454F96", tint:"rgba(94,107,196,.13)" },
+  { key:"P", en:"Plan",       jp:"治療計画",   color:"#2BA17A", deep:"#1F7A5C", tint:"rgba(43,161,122,.13)" },
+];
+
+const TEMPLATES = [
+  { id:"first",  label:"初診",             tag:"First",  time:"4.2" },
+  { id:"recall", label:"再診",             tag:"Recall", time:"3.6" },
+  { id:"spt",    label:"メンテナンス(SPT)", tag:"SPT",    time:"3.9" },
+  { id:"pros",   label:"補綴",             tag:"Pros",   time:"4.0" },
+  { id:"endo",   label:"根管治療",          tag:"Endo",   time:"4.4" },
+];
+
+const DATA = {
+  first: {
+    convo:`医師：今日はどうされましたか？
+患者：3日前から右下の奥歯が、冷たいものを飲むとしみるんです。
+医師：温かいものはいかがですか？
+患者：温かいのは平気です。じっとしているとズキズキする痛みはないですね。
+医師：しみるのは何秒くらい続きますか？
+患者：すぐ治まります。でも食事のたびに気になって。
+医師：わかりました。では右下を拝見しますね。`,
+    soap:[
+      "右下の奥歯が冷たいものでしみる、3日前から。温かいものは平気で、自発痛なし。食事中にしみて気になるとのこと。",
+      "#46に深在性う蝕を認める。冷水痛(+)、打診痛(-)、根尖部圧痛(-)。EPTで生活反応(+)。歯肉に発赤・腫脹なし。",
+      "#46 C3疑い、急性歯髄炎の可能性。冷水痛陽性・打診痛陰性より、可逆性〜不可逆性歯髄炎を鑑別中。",
+      "#46 抜髄処置を検討。本日は鎮痛・経過観察とし、次回より根管治療を予定。デンタルX-P・口腔内写真を記録、治療方針を説明し同意取得。",
+    ],
+  },
+  recall: {
+    convo:`医師：その後、右下の歯の調子はいかがですか？
+患者：前回治療してもらってから、痛みはだいぶ楽になりました。
+医師：噛んだときの違和感はありますか？
+患者：少しだけ、噛むと変な感じが残っています。
+医師：わかりました。お薬を詰めた部分を確認しますね。`,
+    soap:[
+      "前回の根管治療後、#46の痛みは軽減。咬合時の違和感が少し残るが、自発痛・冷温水痛はなし。",
+      "#46 仮封（テック）脱離なし。打診痛(±)、根管内排膿(-)、根尖部圧痛(-)。歯肉腫脹なし。",
+      "#46 根管治療の経過良好。根尖部炎症は軽快傾向で、根管充填へ移行可能と判断。",
+      "#46 根管貼薬を継続し、次回 根管充填(RCF)を予定。経過良好であれば支台築造のうえ補綴へ移行。",
+    ],
+  },
+  spt: {
+    convo:`医師：本日は定期メンテナンスですね。気になるところはありますか？
+患者：特に痛みはないですが、歯磨きのとき時々血が出ます。
+医師：では歯ぐきの状態を検査して、お掃除していきますね。
+患者：お願いします。`,
+    soap:[
+      "定期メンテナンスで来院。自覚的な痛みはなし。ブラッシング時の出血が時々あるとのこと。",
+      "全顎PCR 18%。プロービングで#16近心・#36遠心に4mm以上のポケット残存、BOP(+)部位散在。縁下歯石の軽度沈着あり。",
+      "歯周組織は概ね安定。SPT（サポーティブペリオドンタルセラピー）の継続が妥当。残存ポケット部に限局的な再SRPを検討。",
+      "スケーリング・PMTCを実施。#16・#36にSRP予定。TBI（ブラッシング指導）を強化し、次回は3ヶ月後にリコール設定。",
+    ],
+  },
+  pros: {
+    convo:`医師：今日はどうされましたか？
+患者：右下にかぶせていた銀歯が、昨日食事中に取れてしまって。
+医師：痛みはありますか？
+患者：痛みはないんですが、噛みにくくて困っています。
+医師：では取れた部分を確認しますね。`,
+    soap:[
+      "右下のクラウンが脱離した主訴で来院。自発痛・冷温水痛はないが咬みにくいとのこと。",
+      "#46 旧FMC脱離。支台歯に二次う蝕(-)、マージン適合不良を認める。対合歯の挺出なし、咬合関係は保たれている。",
+      "#46 補綴物脱離。支台歯は保存可能で、再補綴の適応と判断。",
+      "#46 支台歯形成・印象採得を行い、フルジルコニアクラウンを製作。次回セット予定、咬合・コンタクトを確認。",
+    ],
+  },
+  endo: {
+    convo:`医師：今日はどうされましたか？
+患者：左下の奥歯がズキズキ痛くて、昨夜は眠れませんでした。
+医師：温かいものでも痛みますか？
+患者：はい、夜になると特にうずきます。痛み止めを飲んでいます。
+医師：では神経の状態を調べますね。`,
+    soap:[
+      "#36の自発痛・咬合痛で来院。夜間痛あり、鎮痛剤を服用中。温熱刺激で疼痛増強の訴え。",
+      "#36 打診痛(+)、根尖部圧痛(+)。EPT反応(-)で失活歯。デンタルX-Pで根尖部に透過像を認める。",
+      "#36 急性根尖性歯周炎、失活歯。感染根管治療の適応。",
+      "#36 感染根管治療を開始。根管長測定(EMR)後、機械的・化学的拡大洗浄を実施。次回 根管貼薬を予定、消炎を確認。",
+    ],
+  },
+};
+
+const Ico = {
+  tooth:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3.2c-2.1-1.6-4.6-1.6-6 0-1.6 1.8-1.3 5 .1 9.1.6 1.8.8 3.6 1 5.2.2 1.6.4 3 1.4 3 1.1 0 1.2-1.6 1.5-3.2.1-.7.6-1.2 1-1.2s.9.5 1 1.2c.3 1.6.4 3.2 1.5 3.2 1 0 1.2-1.4 1.4-3 .2-1.6.4-3.4 1-5.2 1.4-4.1 1.7-7.3.1-9.1-1.4-1.6-3.9-1.6-6 0Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>),
+  spark:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3.5l1.7 4.6 4.8 1.7-4.8 1.7L12 16.1l-1.7-4.6-4.8-1.7 4.8-1.7L12 3.5Z" fill="currentColor"/><path d="M18.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" fill="currentColor" opacity=".85"/></svg>),
+  copy:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><rect x="8.5" y="8.5" width="11" height="12" rx="2.2" stroke="currentColor" strokeWidth="1.7"/><path d="M5.5 15.5h-1A1.5 1.5 0 0 1 3 14V4.5A1.5 1.5 0 0 1 4.5 3H14a1.5 1.5 0 0 1 1.5 1.5v1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>),
+  link:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M9.5 14.5l5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M13 7l1.2-1.2a3.4 3.4 0 0 1 4.8 4.8L17.8 11.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M11 17l-1.2 1.2a3.4 3.4 0 0 1-4.8-4.8L6.2 12.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>),
+  lock:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2" stroke="currentColor" strokeWidth="1.7"/><path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5" stroke="currentColor" strokeWidth="1.7"/></svg>),
+  check:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M5 12.5l4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  doc:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M6 3h7.5L19 8.5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M13 3v6h6" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M8.5 13h7M8.5 16.5h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>),
+  pen:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M4 20h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M6 14.5l8-8 3 3-8 8H6v-3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>),
+  mic:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M12 17v4M9 21h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>),
+  clock:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7"/><path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  layers:(p)=>(<svg viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3.5l8.5 4.2-8.5 4.2-8.5-4.2L12 3.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>),
+};
+
+const fmtTime = (s)=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const WAVE_H = [16,30,22,38,26,34,18,30,24,40,20,32,16,28,22,36,24,30,18,34,26,38,20,30,16];
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme":"clear",
+  "fontScale":16,
+  "density":"ゆったり"
+}/*EDITMODE-END*/;
+
+function App(){
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  const [tmpl, setTmpl] = useState("first");
+  const [convo, setConvo] = useState(DATA.first.convo);
+  const [memo, setMemo] = useState("");
+  const [inputMode, setInputMode] = useState("paste");
+  const [recState, setRecState] = useState("idle");
+  const [recSec, setRecSec] = useState(0);
+
+  const [phase, setPhase] = useState("idle");
+  const [revealed, setRevealed] = useState(-1);
+  const [typed, setTyped] = useState(["","","",""]);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [genTime, setGenTime] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const timers = useRef([]);
+  const recTimer = useRef(null);
+  const dataRef = useRef(DATA.first);
+
+  useEffect(()=>{
+    const th = THEMES[t.theme] || THEMES.clear;
+    Object.entries(th.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+    document.documentElement.style.setProperty("--header-grad-a", th.vars["--primary"]);
+    document.documentElement.style.setProperty("--header-grad-b", th.vars["--primary-dark"]);
+  },[t.theme]);
+
+  useEffect(()=>{
+    document.documentElement.style.setProperty("--fs", (t.fontScale||16)+"px");
+    document.documentElement.style.setProperty("--pad-scale", t.density==="コンパクト"?"0.78":t.density==="標準"?"0.9":"1");
+  },[t.fontScale, t.density]);
+
+  const clearTimers = ()=>{ timers.current.forEach(clearTimeout); timers.current=[]; };
+  useEffect(()=>()=>{ clearTimers(); clearInterval(recTimer.current); },[]);
+  const push = (fn,ms)=>timers.current.push(setTimeout(fn,ms));
+
+  const showToast = (msg)=>{ setToast(msg); push(()=>setToast(null), 2000); };
+
+  const pickTemplate = (id)=>{
+    setTmpl(id);
+    setConvo(DATA[id].convo);
+    setPhase("idle"); setGenTime(null); setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
+    clearTimers();
+  };
+
+  const toggleRecord = ()=>{
+    if(recState==="idle"){
+      setRecState("recording"); setRecSec(0);
+      recTimer.current = setInterval(()=>setRecSec(s=>s+1), 1000);
+    } else if(recState==="recording"){
+      clearInterval(recTimer.current);
+      setRecState("transcribing");
+      push(()=>{
+        setConvo(dataRef.current.convo);
+        setRecState("idle");
+        setInputMode("paste");
+        showToast("文字起こしが完了しました");
+      }, 2100);
+    }
+  };
+
+  useEffect(()=>{ dataRef.current = DATA[tmpl]; },[tmpl]);
+
+  const runGeneration = useCallback(()=>{
+    clearTimers();
+    setInputMode("paste");
+    setPhase("loading"); setGenTime(null);
+    setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const soap = dataRef.current.soap;
+    const tinfo = TEMPLATES.find(x=>x.id===tmpl);
+
+    push(()=>{
+      setPhase("done");
+      setGenTime(tinfo ? tinfo.time : "4.2");
+      streamBlock(0);
+    }, reduce ? 400 : 1700);
+
+    function streamBlock(i){
+      if(i>=BLOCKS.length){ setActiveIdx(-1); return; }
+      setRevealed(i); setActiveIdx(i);
+      const full = soap[i];
+      if(reduce){
+        setTyped(prev=>{ const n=[...prev]; n[i]=full; return n; });
+        push(()=>streamBlock(i+1), 200);
+        return;
+      }
+      let c=0;
+      const step = ()=>{
+        c += (full.length>60 ? 2 : 1);
+        if(c>full.length) c=full.length;
+        setTyped(prev=>{ const n=[...prev]; n[i]=full.slice(0,c); return n; });
+        if(c<full.length){ push(step, 15); }
+        else { push(()=>streamBlock(i+1), 340); }
+      };
+      push(step, 240);
+    }
+  },[tmpl]);
+
+  const copyAll = ()=>{
+    const soap = dataRef.current.soap;
+    const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]}`).join("\n\n");
+    if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
+    showToast("SOAPカルテをコピーしました");
+  };
+
+  const pasteEMR = ()=> showToast("レセコンへ転記しました（デモ）");
+
+  const canGen = convo.trim().length>0 && phase!=="loading" && recState==="idle";
+  const live = phase==="done";
+  const curTmpl = TEMPLATES.find(x=>x.id===tmpl);
+
+  return (
+    <div className="page">
+      <header className="topbar">
+        <div className="brand">
+          <span className="mark"><Ico.tooth stroke="#fff"/></span>
+          <span className="word">dent<b>ia</b></span>
+          <span className="beta latin">BETA</span>
+          <span className="spec"><Ico.tooth stroke="currentColor"/> 歯科専用AIカルテ</span>
+        </div>
+        <div className="topbar-right">
+          <span className="who">
+            <span className="avatar">DC</span>
+            <span>田中デンタルクリニック</span>
+          </span>
+        </div>
+      </header>
+
+      <section className="hero">
+        <h1>カルテ入力の時間を、<span className="accent">患者と向き合う時間</span>に。</h1>
+        <p>診療の会話を貼り付け、または録音するだけ。歯科に特化したAIが、歯式・歯周検査・処置内容を反映したSOAP形式のカルテ下書きを生成します。</p>
+      </section>
+
+      <div className="work">
+        {/* LEFT — input */}
+        <section>
+          <div className="col-head">
+            <span className="step">1</span>
+            <h2>入力</h2>
+            <span className="hint">貼り付け / 録音 → 生成</span>
+          </div>
+          <div className="panel">
+            <div className="tabs">
+              <button className={"tab"+(inputMode==="paste"?" on":"")} onClick={()=>setInputMode("paste")}>
+                <Ico.doc stroke="currentColor"/> 会話を貼り付け
+              </button>
+              <button className={"tab"+(inputMode==="record"?" on":"")} onClick={()=>setInputMode("record")}>
+                {recState==="recording" ? <span className="rdot"></span> : <Ico.mic stroke="currentColor"/>}
+                録音して入力
+              </button>
+            </div>
+
+            <div className="in-body">
+              {inputMode==="paste" && (
+                <React.Fragment>
+                  <label className="field-label" htmlFor="convo">
+                    診療の会話を貼り付け <span className="req">必須</span>
+                  </label>
+                  <textarea id="convo" className="ta" value={convo}
+                    onChange={e=>setConvo(e.target.value)}
+                    placeholder={DATA.first.convo}/>
+                  <div className="meta-row">
+                    <span className="priv"><Ico.lock stroke="currentColor"/> 入力内容は診療目的にのみ利用されます</span>
+                    <span>{convo.length} 文字</span>
+                  </div>
+                </React.Fragment>
+              )}
+
+              {inputMode==="record" && (
+                <div className="rec-wrap">
+                  {recState==="idle" && (
+                    <React.Fragment>
+                      <button className="mic-btn" onClick={toggleRecord}><Ico.mic stroke="#fff"/></button>
+                      <div className="rec-hint">タップして録音を開始</div>
+                      <div className="rec-sub">診療中の会話をそのまま録音 → 自動で文字起こし</div>
+                    </React.Fragment>
+                  )}
+                  {recState==="recording" && (
+                    <div className="rec-live">
+                      <button className="mic-btn rec" onClick={toggleRecord}><span className="mic-stop"></span></button>
+                      <div className="wave">
+                        {WAVE_H.map((h,i)=>(
+                          <i key={i} style={{"--h":h+"px", animationDelay:(i*0.06)+"s"}}></i>
+                        ))}
+                      </div>
+                      <div className="rec-time"><span className="live-dot"></span>{fmtTime(recSec)}</div>
+                      <div className="rec-sub">録音中… もう一度タップで停止</div>
+                    </div>
+                  )}
+                  {recState==="transcribing" && (
+                    <div className="transcribe">
+                      <div className="spinner"></div>
+                      <div className="ttxt">文字起こし中…</div>
+                      <div className="rec-sub">音声を歯科用語に対応して変換しています</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="stack">
+                <label className="field-label" htmlFor="memo">
+                  補足メモ <span className="opt">任意・既往歴／アレルギー等</span>
+                </label>
+                <textarea id="memo" className="ta" value={memo}
+                  onChange={e=>setMemo(e.target.value)}
+                  placeholder="例）既往歴：高血圧で内服中／アレルギー：特になし／歯科的既往：#16 根管治療済み"/>
+              </div>
+
+              <div className="tmpl-row">
+                <div className="tmpl-label"><Ico.layers stroke="currentColor"/> カルテテンプレート（処置別）</div>
+                <div className="chips">
+                  {TEMPLATES.map(x=>(
+                    <button key={x.id} className={"chip"+(tmpl===x.id?" on":"")} onClick={()=>pickTemplate(x.id)}>
+                      {x.label}<span className="tag">{x.tag}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="gen-row">
+                <button className="btn btn-primary" onClick={runGeneration} disabled={!canGen}>
+                  {phase==="loading"
+                    ? <>生成中…</>
+                    : <><Ico.spark fill="#fff"/> {curTmpl.label}のSOAPを生成</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT — result */}
+        <section>
+          <div className="col-head">
+            <span className="step">2</span>
+            <h2>生成結果</h2>
+            <span className="hint">{curTmpl.label}・SOAP形式</span>
+          </div>
+          <div className="panel">
+            <div className="res-head">
+              <span className="title">
+                <span className={"dot"+(live?" live":"")}></span>
+                SOAPカルテ下書き
+              </span>
+              {phase==="done" && genTime && (
+                <span className="time-badge"><Ico.clock stroke="currentColor"/> 生成時間 <b>{genTime}秒</b></span>
+              )}
+            </div>
+
+            <div className="res-body">
+              {phase==="idle" && (
+                <div className="empty">
+                  <span className="glyph"><Ico.doc stroke="currentColor"/></span>
+                  <h3>ここに下書きが表示されます</h3>
+                  <p>会話を入力し「SOAPを生成」を押すと、歯式・所見を反映した S・O・A・P の4ブロックを自動で書き起こします。</p>
+                </div>
+              )}
+
+              {phase==="loading" && (
+                <div className="loading">
+                  <div className="spinner"></div>
+                  <div className="ltxt">AIがカルテを生成しています…</div>
+                  <div className="lsub">会話を解析し、{curTmpl.label}向けSOAPに整理しています</div>
+                  <div className="lbar"><i></i></div>
+                </div>
+              )}
+
+              {phase==="done" && (
+                <div className="soap">
+                  {BLOCKS.map((b,i)=>(
+                    <div key={b.key}
+                      className={"block"+(i<=revealed?" show":"")+(activeIdx===i?" active":"")}
+                      style={{"--blk":b.color,"--blk-deep":b.deep,"--blk-tint":b.tint}}>
+                      <div className="block-head">
+                        <span className="badge">{b.key}</span>
+                        <span className="labels">
+                          <span className="en">{b.en}</span>
+                          <span className="jp">{b.jp}</span>
+                        </span>
+                      </div>
+                      <div className="block-body">
+                        {typed[i]}
+                        {activeIdx===i && typed[i].length<dataRef.current.soap[i].length && <span className="caret"></span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {phase==="done" && (
+              <React.Fragment>
+                <div className="action-bar">
+                  <button className="btn btn-emr" onClick={pasteEMR}>
+                    <Ico.link stroke="currentColor"/> レセコンに転記
+                  </button>
+                  <button className="btn btn-ghost" onClick={copyAll}>
+                    <Ico.copy stroke="currentColor"/> コピー
+                  </button>
+                </div>
+                <div className="res-foot">
+                  <Ico.check stroke="var(--p-color)"/>
+                  <span>内容をご確認のうえ、加筆・修正してご利用ください。</span>
+                  <span className="ai-tag">dentia AI · v0.9 β</span>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className={"toast"+(toast?" on":"")}>
+        <Ico.check stroke="currentColor"/> {toast||""}
+      </div>
+
+      <TweaksPanel>
+        <TweakSection label="配色テーマ" />
+        <TweakRadio label="テーマ" value={t.theme}
+          options={[{value:"clear",label:"クリア"},{value:"deep",label:"ディープ"},{value:"azure",label:"ブルー"}]}
+          onChange={v=>setTweak("theme", v)} />
+        <TweakSection label="表示" />
+        <TweakSlider label="文字サイズ" value={t.fontScale} min={14} max={19} step={1} unit="px"
+          onChange={v=>setTweak("fontScale", v)} />
+        <TweakRadio label="余白" value={t.density}
+          options={["コンパクト","標準","ゆったり"]}
+          onChange={v=>setTweak("density", v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
