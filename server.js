@@ -68,6 +68,7 @@ async function authGuard(req, res, next) {
       return res.status(401).json({ error: "認証に失敗しました。" });
     }
     req.userId = user.id;
+    req.userToken = token; // 後段（利用上限のRPC）で使う
     next();
   } catch (err) {
     console.error("[auth] verify error:", err);
@@ -88,6 +89,39 @@ function rateLimit(req, res, next) {
   }
   recent.push(now);
   rlMap.set(key, recent);
+  next();
+}
+
+// 1日あたりの利用上限（永続）。Supabaseの bump_api_usage() で当日カウントを+1し、
+// 上限超過なら 429。SQL未実行/障害時はフェイルオープン（アプリを止めない）。
+const DAILY_LIMIT = parseInt(process.env.DAILY_API_LIMIT || "200", 10);
+async function dailyCap(req, res, next) {
+  if (!req.userToken) return next(); // 認証未設定/未ログインはスキップ（authGuardで処理済み）
+  try {
+    const base = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+    const r = await fetch(`${base}/rest/v1/rpc/bump_api_usage`, {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${req.userToken}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    if (r.ok) {
+      const count = await r.json();
+      if (typeof count === "number" && count > DAILY_LIMIT) {
+        return res.status(429).json({
+          error: `本日の生成上限（${DAILY_LIMIT}件）に達しました。明日また利用できます。`,
+        });
+      }
+    } else {
+      // 関数未作成(404)など → 上限を有効化していないとみなしフェイルオープン
+      console.warn("[dailyCap] rpc not ok:", r.status);
+    }
+  } catch (err) {
+    console.warn("[dailyCap] error (fail-open):", err.message);
+  }
   next();
 }
 
@@ -182,7 +216,7 @@ const SOAP_TOOL = {
 /* ------------------------------------------------------------------ *
  * 生成エンドポイント
  * ------------------------------------------------------------------ */
-app.post("/api/generate", authGuard, rateLimit, async (req, res) => {
+app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
   const { conversation, memo, template } = req.body || {};
 
   if (!conversation || !conversation.trim()) {

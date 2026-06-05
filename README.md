@@ -71,6 +71,7 @@ npm run dev        # 開発用（変更を自動反映, Node 18+）
 1. [Supabase](https://supabase.com/) で**新規プロジェクト**を作成
 2. **SQL Editor** を開き、リポジトリ同梱の [`supabase/schema.sql`](./supabase/schema.sql) を貼り付けて実行
    → `records` テーブル作成＋**RLS（本人の行だけアクセス可）**が有効になります
+   - 続けて [`supabase/usage.sql`](./supabase/usage.sql) も実行すると、**1日あたりの生成上限**（`DAILY_API_LIMIT`、既定200）が有効になります（任意・コスト暴走の防止）
 3. **Authentication → Providers → Email** を有効化
    - 動作確認をすぐ行いたい場合は **「Confirm email」を一時的にOFF** にすると、サインアップ後すぐログインできます（本番では用途に応じて判断）
 4. **Project Settings → API** から `Project URL` と `anon public` キーを取得し、`.env` の `SUPABASE_URL` / `SUPABASE_ANON_KEY` に設定
@@ -116,6 +117,7 @@ npm run dev        # 開発用（変更を自動反映, Node 18+）
 | `index.html` | フロント（ログイン画面・録音UI・生成結果・保存カルテ一覧） |
 | `server.js` | Express（静的配信 + `/api/transcribe` + `/api/generate` + `/api/config`） |
 | `supabase/schema.sql` | Supabase の `records` テーブル + RLS ポリシー |
+| `supabase/usage.sql` | 日次利用上限のカウンタ + RPC（任意） |
 | `render.yaml` | Render デプロイ設定（Blueprint） |
 | `.env.example` | 環境変数テンプレート |
 
