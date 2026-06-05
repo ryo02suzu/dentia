@@ -1010,7 +1010,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "density":"ゆったり"
 }/*EDITMODE-END*/;
 
-function App({ sb=null, session=null }){
+function App({ sb=null, session=null, clinicId=null }){
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const authEnabled = !!(sb && session);
   const [showRecords, setShowRecords] = useState(false);
@@ -1132,12 +1132,14 @@ function App({ sb=null, session=null }){
       setPhase("done");
       animateSoap(soap);
 
-      // 生成結果をログインユーザーに紐づけて保存（RLSで本人の行のみ）。失敗しても生成は妨げない。
+      // 生成結果をログインユーザー（所属医院）に紐づけて保存。失敗しても生成は妨げない。
       if(sb && session){
-        sb.from("records").insert({
+        const payload = {
           template: tmpl, transcript: text, memo,
           s: soap[0], o: soap[1], a: soap[2], p: soap[3],
-        }).then(({error})=>{
+        };
+        if(clinicId) payload.clinic_id = clinicId; // 医院があれば医院単位で共有（未マイグレーション時は付けない）
+        sb.from("records").insert(payload).then(({error})=>{
           if(error){ console.error("save error:", error); showToast("カルテの保存に失敗しました"); }
           else { showToast("カルテを保存しました"); }
         });
@@ -1146,7 +1148,7 @@ function App({ sb=null, session=null }){
       setPhase("error");
       setErrMsg(err.message || "サーバーに接続できませんでした。サーバーが起動しているか確認してください。");
     }
-  },[convo, memo, tmpl, sb, session]);
+  },[convo, memo, tmpl, sb, session, clinicId]);
 
   // 最新の runGeneration を保持（録音停止時のコールバックから最新テンプレ等で呼ぶため）
   const genRef = useRef();
@@ -1670,6 +1672,7 @@ function Root(){
   const [cfg, setCfg] = useState(null);            // null=未取得
   const [sb, setSb] = useState(null);              // supabaseクライアント or null
   const [session, setSession] = useState(undefined); // undefined=判定中, null=未ログイン, obj=ログイン中
+  const [clinicId, setClinicId] = useState(null);  // 所属医院ID（マルチテナント。未マイグレーション時はnull）
 
   useEffect(()=>{
     let alive = true;
@@ -1689,11 +1692,24 @@ function Root(){
     return ()=>{ alive=false; };
   },[]);
 
+  // ログイン後、自分の医院IDを取得（無ければ自動作成）。未マイグレーション環境ではnullのまま＝従来動作。
+  useEffect(()=>{
+    let alive = true;
+    if(sb && session){
+      sb.rpc("ensure_clinic").then(({data,error})=>{
+        if(alive && !error && data) setClinicId(data);
+      }).catch(()=>{});
+    } else {
+      setClinicId(null);
+    }
+    return ()=>{ alive=false; };
+  },[sb, session]);
+
   const authEnabled = !!(cfg && cfg.supabaseUrl && cfg.supabaseAnonKey && sb);
 
   if(cfg===null || session===undefined) return <Splash/>;
   if(authEnabled && !session) return <AuthScreen sb={sb}/>;
-  return <App sb={authEnabled ? sb : null} session={authEnabled ? session : null}/>;
+  return <App sb={authEnabled ? sb : null} session={authEnabled ? session : null} clinicId={authEnabled ? clinicId : null}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
