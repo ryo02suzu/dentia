@@ -237,6 +237,19 @@ app.use((err, _req, res, next) => {
   next(err);
 });
 
+/* ------------------------------------------------------------------ *
+ * フロント用の公開設定（Supabase URL / anon key）
+ *   anon key はクライアント用途の公開鍵で、データ保護は Supabase の
+ *   Row Level Security (RLS) が担保する。直書きせず環境変数から渡す。
+ *   未設定なら null を返し、フロントはログイン無しの従来モードで動く。
+ * ------------------------------------------------------------------ */
+app.get("/api/config", (_req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || null,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+  });
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
@@ -244,6 +257,7 @@ app.get("/api/health", (_req, res) => {
     transcribeModel: TRANSCRIBE_MODEL,
     hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
     hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    authEnabled: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
   });
 });
 
