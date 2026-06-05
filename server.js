@@ -243,9 +243,17 @@ app.use((err, _req, res, next) => {
  *   Row Level Security (RLS) が担保する。直書きせず環境変数から渡す。
  *   未設定なら null を返し、フロントはログイン無しの従来モードで動く。
  * ------------------------------------------------------------------ */
+// SUPABASE_URL はベースURL（https://xxx.supabase.co）であるべき。
+// 誤って REST エンドポイント（.../rest/v1/）や末尾スラッシュ付きを設定しても
+// supabase-js が正しく動くよう正規化する。
+function normalizeSupabaseUrl(u) {
+  if (!u) return null;
+  return u.trim().replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/, "");
+}
+
 app.get("/api/config", (_req, res) => {
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL || null,
+    supabaseUrl: normalizeSupabaseUrl(process.env.SUPABASE_URL),
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
   });
 });
