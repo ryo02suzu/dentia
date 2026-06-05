@@ -1095,6 +1095,16 @@ function App({ sb=null, session=null }){
     })(0);
   };
 
+  // APIへ付与する認証ヘッダ（ログイン中はSupabaseのaccess_tokenをBearerで送る）
+  const authHeaders = async ()=>{
+    if(!sb) return {};
+    try{
+      const { data } = await sb.auth.getSession();
+      const tok = data && data.session && data.session.access_token;
+      return tok ? { Authorization: "Bearer "+tok } : {};
+    }catch(_){ return {}; }
+  };
+
   const runGeneration = useCallback(async (overrideConvo)=>{
     // 録音フローからは文字起こしテキストを直接渡す（state更新の反映待ちを避ける）
     const text = (typeof overrideConvo === "string" && overrideConvo.trim()) ? overrideConvo : convo;
@@ -1110,7 +1120,7 @@ function App({ sb=null, session=null }){
     try{
       const res = await fetch("/api/generate", {
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
+        headers:{ "Content-Type":"application/json", ...(await authHeaders()) },
         body: JSON.stringify({ conversation: text, memo, template: tmpl }),
       });
       const data = await res.json().catch(()=>({}));
@@ -1159,7 +1169,7 @@ function App({ sb=null, session=null }){
     try{
       const fd = new FormData();
       fd.append("audio", blob, "recording."+ext);
-      const res = await fetch("/api/transcribe", { method:"POST", body: fd });
+      const res = await fetch("/api/transcribe", { method:"POST", headers: await authHeaders(), body: fd });
       const data = await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.error || `文字起こしに失敗しました（HTTP ${res.status}）`);
       const text = (data.text||"").trim();

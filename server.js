@@ -35,6 +35,63 @@ const upload = multer({
 });
 
 /* ------------------------------------------------------------------ *
+ * 認証ガード & レート制限
+ *   - SUPABASE_* 設定時：AI系API（transcribe/generate）はログイン必須。
+ *     Authorization: Bearer <Supabase access_token> を検証する。
+ *   - 未設定時：従来どおり通す（ローカル/デモの安全網）。
+ *   - 検証は SUPABASE_URL/auth/v1/user への問い合わせで行う（追加の鍵不要）。
+ * ------------------------------------------------------------------ */
+async function authGuard(req, res, next) {
+  const configured = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
+  if (!configured) {
+    req.userId = null; // 認証未設定モード
+    return next();
+  }
+  const h = req.headers.authorization || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : null;
+  if (!token) {
+    return res.status(401).json({ error: "ログインが必要です。再度ログインしてお試しください。" });
+  }
+  try {
+    const base = normalizeSupabaseUrl(process.env.SUPABASE_URL);
+    const r = await fetch(`${base}/auth/v1/user`, {
+      headers: {
+        apikey: process.env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!r.ok) {
+      return res.status(401).json({ error: "認証に失敗しました。再度ログインしてください。" });
+    }
+    const user = await r.json();
+    if (!user || !user.id) {
+      return res.status(401).json({ error: "認証に失敗しました。" });
+    }
+    req.userId = user.id;
+    next();
+  } catch (err) {
+    console.error("[auth] verify error:", err);
+    return res.status(401).json({ error: "認証の確認に失敗しました。時間をおいて再度お試しください。" });
+  }
+}
+
+// 簡易レート制限（ユーザー単位・インメモリ）。課金の暴走/悪用を抑止する第一段。
+const RL_WINDOW_MS = 60 * 1000;
+const RL_MAX = 30; // 1分あたりの上限
+const rlMap = new Map();
+function rateLimit(req, res, next) {
+  const key = req.userId || req.ip || "anon";
+  const now = Date.now();
+  const recent = (rlMap.get(key) || []).filter((t) => now - t < RL_WINDOW_MS);
+  if (recent.length >= RL_MAX) {
+    return res.status(429).json({ error: "リクエストが多すぎます。少し時間をおいて再度お試しください。" });
+  }
+  recent.push(now);
+  rlMap.set(key, recent);
+  next();
+}
+
+/* ------------------------------------------------------------------ *
  * テンプレート（処置別）ごとの追加プロンプト
  * ------------------------------------------------------------------ */
 const TEMPLATES = {
@@ -125,7 +182,7 @@ const SOAP_TOOL = {
 /* ------------------------------------------------------------------ *
  * 生成エンドポイント
  * ------------------------------------------------------------------ */
-app.post("/api/generate", async (req, res) => {
+app.post("/api/generate", authGuard, rateLimit, async (req, res) => {
   const { conversation, memo, template } = req.body || {};
 
   if (!conversation || !conversation.trim()) {
@@ -188,7 +245,7 @@ const TRANSCRIBE_PROMPT =
   "歯科診療の会話です。歯式（#46 など）、う蝕、抜髄、根管治療、SRP、プロービング、" +
   "打診痛、冷水痛、EPT、補綴、クラウン、インレーなどの歯科用語が含まれます。";
 
-app.post("/api/transcribe", upload.single("audio"), async (req, res) => {
+app.post("/api/transcribe", authGuard, rateLimit, upload.single("audio"), async (req, res) => {
   if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
     return res.status(400).json({ error: "音声データがありません。" });
   }
