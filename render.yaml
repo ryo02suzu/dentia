@@ -13,6 +13,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: DAILY_API_LIMIT
+        value: "200"
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: OPENAI_API_KEY
