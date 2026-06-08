@@ -1619,7 +1619,7 @@ function RecordsView({ sb, onClose }){
 
   useEffect(()=>{
     let alive = true;
-    sb.from("records").select("*").order("created_at",{ascending:false})
+    sb.from("records").select("*").order("created_at",{ascending:false}).limit(200)
       .then(({data,error})=>{
         if(!alive) return;
         if(error){ setErr(error.message); setRows([]); }
