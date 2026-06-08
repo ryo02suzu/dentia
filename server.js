@@ -25,8 +25,21 @@ const TRANSCRIBE_MODEL = process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1";
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+app.set("trust proxy", 1); // Render等のリバースプロキシ配下で正しいクライアントIPを使う
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(__dirname));
+
+// 最低限のセキュリティヘッダ
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
+// 静的配信は index.html のみ（server.js / SQL / 設定ファイル等の内部ファイルは公開しない）
+app.get(["/", "/index.html"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 // 音声はメモリ上のみで保持（ディスクに保存しない＝医療データを残さない）。Whisper上限の25MBに合わせる。
 const upload = multer({
@@ -80,6 +93,15 @@ async function authGuard(req, res, next) {
 const RL_WINDOW_MS = 60 * 1000;
 const RL_MAX = 30; // 1分あたりの上限
 const rlMap = new Map();
+// 古いエントリを定期的に掃除（メモリ肥大を防ぐ）
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, arr] of rlMap) {
+    const recent = arr.filter((t) => now - t < RL_WINDOW_MS);
+    if (recent.length) rlMap.set(k, recent);
+    else rlMap.delete(k);
+  }
+}, RL_WINDOW_MS).unref();
 function rateLimit(req, res, next) {
   const key = req.userId || req.ip || "anon";
   const now = Date.now();
