@@ -132,6 +132,16 @@ npm run dev        # 開発用（変更を自動反映, Node 18+）
 - `GET /api/config` … `{ supabaseUrl, supabaseAnonKey }`（フロントの認証初期化用。anonキーは公開鍵）
 - `GET /api/health` … `{ ok, model, transcribeModel, hasAnthropicKey, hasOpenAIKey, authEnabled }`
 
+## ドキュメント
+
+| 資料 | 内容 |
+| --- | --- |
+| [`docs/sales-deck.md`](./docs/sales-deck.md) | 営業／提案用スライド（**Marp形式** → スライド/PDFに変換可） |
+| [`docs/user-manual.md`](./docs/user-manual.md) | 操作マニュアル（医師・スタッフ向け） |
+| [`docs/commercial-readiness.md`](./docs/commercial-readiness.md) | 商用化レディネス チェックリスト／ロードマップ |
+
+> `sales-deck.md` を PDF/PPTX にするには [marp.app](https://marp.app/) に貼り付けるか、`npx @marp-team/marp-cli docs/sales-deck.md --pdf` を実行します。
+
 ## セキュリティ TODO（今後の課題）
 
 保存される診療データ（文字起こし・SOAP）は**患者の機微情報**です。現状は Supabase の認証＋RLS による行レベルのアクセス分離、および AI系API（`/api/transcribe`・`/api/generate`）の**サーバー側JWT検証＋レート制限**までを実装しています。実運用に向けては以下が今後の課題です：
