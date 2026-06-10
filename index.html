@@ -444,6 +444,12 @@
   .rec-item .ri-date{flex:0 0 auto; color:var(--ink-faint); font-size:12px; font-family:"Outfit",sans-serif;}
   .rec-empty{padding:48px 20px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.8;}
 
+  /* モーダル（ご意見・ご要望） */
+  .modal-bg{position:fixed; inset:0; z-index:90; background:rgba(16,50,58,.45);
+    display:grid; place-items:center; padding:20px;}
+  .modal{width:100%; max-width:460px;}
+  .modal .field-label{margin-bottom:10px;}
+
   /* ── スマホ対応（既存デザイン・配色・フォントはそのまま、狭い画面に収める調整のみ） ── */
   @media (max-width:640px){
     /* 横スクロールを起こさない */
@@ -1055,6 +1061,7 @@ function App({ sb=null, session=null, clinicId=null }){
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const authEnabled = !!(sb && session);
   const [showRecords, setShowRecords] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const [tmpl, setTmpl] = useState("first");
   const [convo, setConvo] = useState(DATA.first.convo);
@@ -1165,6 +1172,10 @@ function App({ sb=null, session=null, clinicId=null }){
         body: JSON.stringify({ conversation: text, memo, template: tmpl }),
       });
       const data = await res.json().catch(()=>({}));
+      if(res.status===401 && sb){
+        sb.auth.signOut().catch(()=>{}); // セッション失効 → ログイン画面へ戻す
+        throw new Error("セッションが切れました。お手数ですが再度ログインしてください。");
+      }
       if(!res.ok){
         throw new Error(data.error || `生成に失敗しました（HTTP ${res.status}）`);
       }
@@ -1214,6 +1225,10 @@ function App({ sb=null, session=null, clinicId=null }){
       fd.append("audio", blob, "recording."+ext);
       const res = await fetch("/api/transcribe", { method:"POST", headers: await authHeaders(), body: fd });
       const data = await res.json().catch(()=>({}));
+      if(res.status===401 && sb){
+        sb.auth.signOut().catch(()=>{});
+        setRecState("error"); setRecErr("セッションが切れました。再度ログインしてください。"); return;
+      }
       if(!res.ok) throw new Error(data.error || `文字起こしに失敗しました（HTTP ${res.status}）`);
       const text = (data.text||"").trim();
       if(!text){ setRecState("error"); setRecErr("音声から文字を認識できませんでした。はっきり話して、もう一度お試しください。"); return; }
@@ -1292,6 +1307,7 @@ function App({ sb=null, session=null, clinicId=null }){
               <button className="btn btn-ghost" onClick={()=>setShowRecords(true)}>
                 <Ico.doc stroke="currentColor"/> 保存カルテ
               </button>
+              <button className="btn btn-ghost" onClick={()=>setShowFeedback(true)}>ご意見</button>
               <button className="btn btn-ghost" onClick={()=>sb.auth.signOut()}>ログアウト</button>
             </React.Fragment>
           )}
@@ -1510,6 +1526,9 @@ function App({ sb=null, session=null, clinicId=null }){
       {authEnabled && showRecords && (
         <RecordsView sb={sb} onClose={()=>setShowRecords(false)} />
       )}
+      {authEnabled && showFeedback && (
+        <FeedbackModal sb={sb} showToast={showToast} onClose={()=>setShowFeedback(false)} />
+      )}
 
       <TweaksPanel>
         <TweakSection label="配色テーマ" />
@@ -1704,6 +1723,37 @@ function RecordsView({ sb, onClose }){
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackModal({ sb, onClose, showToast }){
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async ()=>{
+    if(!msg.trim()) return;
+    setBusy(true);
+    const { error } = await sb.from("feedback").insert({ message: msg.trim(), page: "app" });
+    setBusy(false);
+    if(error){ console.error("feedback error:", error); showToast("送信に失敗しました。お手数ですが時間をおいてお試しください。"); }
+    else { showToast("ご意見ありがとうございます"); onClose(); }
+  };
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal panel" onClick={e=>e.stopPropagation()}>
+        <div className="in-body">
+          <div className="field-label">ご意見・ご要望 <span className="opt">ベータ改善に活用します</span></div>
+          <textarea className="ta" style={{minHeight:130}} value={msg}
+            onChange={e=>setMsg(e.target.value)}
+            placeholder="使ってみて気づいた点・欲しい機能・歯科用語の誤変換など、何でもお書きください。"/>
+          <div className="gen-row" style={{marginTop:14}}>
+            <button className="btn btn-primary" onClick={submit} disabled={busy || !msg.trim()}>
+              {busy ? "送信中…" : "送信"}
+            </button>
+            <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
+          </div>
+        </div>
       </div>
     </div>
   );

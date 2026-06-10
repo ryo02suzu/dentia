@@ -117,6 +117,8 @@ function rateLimit(req, res, next) {
 // 1日あたりの利用上限（永続）。Supabaseの bump_api_usage() で当日カウントを+1し、
 // 上限超過なら 429。SQL未実行/障害時はフェイルオープン（アプリを止めない）。
 const DAILY_LIMIT = parseInt(process.env.DAILY_API_LIMIT || "200", 10);
+// 1回の生成に渡せる会話の最大文字数（過大なトークン課金を防ぐ）
+const MAX_CONVERSATION_CHARS = parseInt(process.env.MAX_CONVERSATION_CHARS || "16000", 10);
 async function dailyCap(req, res, next) {
   if (!req.userToken) return next(); // 認証未設定/未ログインはスキップ（authGuardで処理済み）
   try {
@@ -134,7 +136,7 @@ async function dailyCap(req, res, next) {
       const count = await r.json();
       if (typeof count === "number" && count > DAILY_LIMIT) {
         return res.status(429).json({
-          error: `本日の生成上限（${DAILY_LIMIT}件）に達しました。明日また利用できます。`,
+          error: `本日の利用上限（${DAILY_LIMIT}回）に達しました。明日また利用できます。`,
         });
       }
     } else {
@@ -244,6 +246,11 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
   if (!conversation || !conversation.trim()) {
     return res.status(400).json({ error: "会話テキストが空です。" });
   }
+  if (conversation.length > MAX_CONVERSATION_CHARS) {
+    return res.status(400).json({
+      error: `会話が長すぎます（最大 ${MAX_CONVERSATION_CHARS} 文字）。録音・入力を分割してお試しください。`,
+    });
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({
       error:
@@ -301,7 +308,7 @@ const TRANSCRIBE_PROMPT =
   "歯科診療の会話です。歯式（#46 など）、う蝕、抜髄、根管治療、SRP、プロービング、" +
   "打診痛、冷水痛、EPT、補綴、クラウン、インレーなどの歯科用語が含まれます。";
 
-app.post("/api/transcribe", authGuard, rateLimit, upload.single("audio"), async (req, res) => {
+app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio"), async (req, res) => {
   if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
     return res.status(400).json({ error: "音声データがありません。" });
   }
