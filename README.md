@@ -73,6 +73,7 @@ npm run dev        # 開発用（変更を自動反映, Node 18+）
    → `records` テーブル作成＋**RLS（本人の行だけアクセス可）**が有効になります
    - 続けて [`supabase/usage.sql`](./supabase/usage.sql) も実行すると、**1日あたりの生成上限**（`DAILY_API_LIMIT`、既定200）が有効になります（任意・コスト暴走の防止）
    - さらに [`supabase/multitenant.sql`](./supabase/multitenant.sql) を実行すると、**医院（テナント）単位**でカルテを共有する基盤が有効になります（`clinics`/`clinic_members`、医院ベースRLS、ログイン時に個人医院を自動作成）。未実行でも「本人のみ」で動作（後方互換）
+   - [`supabase/feedback.sql`](./supabase/feedback.sql) を実行すると、画面の「ご意見」ボタンからのフィードバックが `feedback` テーブルに保存されます（ベータ運用向け・任意）
 3. **Authentication → Providers → Email** を有効化
    - 動作確認をすぐ行いたい場合は **「Confirm email」を一時的にOFF** にすると、サインアップ後すぐログインできます（本番では用途に応じて判断）
 4. **Project Settings → API** から `Project URL` と `anon public` キーを取得し、`.env` の `SUPABASE_URL` / `SUPABASE_ANON_KEY` に設定
@@ -120,6 +121,7 @@ npm run dev        # 開発用（変更を自動反映, Node 18+）
 | `supabase/schema.sql` | Supabase の `records` テーブル + RLS ポリシー |
 | `supabase/usage.sql` | 日次利用上限のカウンタ + RPC（任意） |
 | `supabase/multitenant.sql` | 医院テナント（clinics/members）+ 医院ベースRLS（任意） |
+| `supabase/feedback.sql` | フィードバック収集テーブル + RLS（任意） |
 | `render.yaml` | Render デプロイ設定（Blueprint） |
 | `.env.example` | 環境変数テンプレート |
 

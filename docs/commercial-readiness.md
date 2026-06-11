@@ -37,6 +37,10 @@
 - [x] **① API認証**: `/api/transcribe`・`/api/generate` に Supabase JWT 検証を追加（完了）
 - [x] レート制限（1ユーザー1分あたり上限・インメモリ）— 完了
 - [x] **日次コスト上限**（1ユーザー1日あたりのSOAP生成上限・Supabase永続カウンタ）— 完了（`DAILY_API_LIMIT`, `supabase/usage.sql`）
+- [x] **文字起こしも日次上限の対象**に（生成＋文字起こしの合計）— 完了
+- [x] **入力長の上限**（`MAX_CONVERSATION_CHARS`、既定16000）で過大トークンを防止 — 完了
+- [x] **401時に再ログイン導線**（トークン失効でログイン画面へ）— 完了
+- [x] **フィードバック収集**（画面の「ご意見」→ `feedback` テーブル、`supabase/feedback.sql`）— 完了
 - [ ] **月次/医院単位のコスト上限・トークン量ベースの上限**（より厳密な課金管理）は今後
 - [x] **マルチテナント基盤**: `clinics`/`clinic_members`、医院単位の `records` RLS、ログイン時 `ensure_clinic()` で個人医院を自動作成（`supabase/multitenant.sql`）— 完了。**メンバー招待UI**は次段階
 - [ ] メンバー招待フロー（管理者が同僚を医院に追加して共有）
