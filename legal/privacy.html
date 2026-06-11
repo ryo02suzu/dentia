@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>プライバシーポリシー（ドラフト） — dentia</title>
+<style>
+  body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;color:#16323A;
+    background:#F2F7F8;margin:0;line-height:1.8;}
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 64px;}
+  .card{background:#fff;border:1px solid #E2EAEC;border-radius:16px;padding:28px 28px 36px;}
+  h1{color:#0B7C87;font-size:22px;border-bottom:3px solid #0E9AA7;padding-bottom:10px;}
+  h2{color:#0B7C87;font-size:16px;margin-top:26px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0;}
+  th,td{border:1px solid #D4ECEE;padding:7px 10px;text-align:left;vertical-align:top;}
+  th{background:#E8F6F7;color:#0A5E68;white-space:nowrap;}
+  .draft{background:#FDECEA;border:1px solid #F5C6C0;color:#B5392B;border-radius:10px;
+    padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:18px;}
+  .meta{color:#8AA0A6;font-size:12.5px;}
+  a{color:#0B7C87;}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card">
+<div class="draft">【ドラフト】本ポリシーは弁護士レビュー前の草案です。特に外国第三者提供（越境移転）に関する記載は、正式リリース前に必ず法律専門家の確認を受けてください。</div>
+<h1>dentia プライバシーポリシー</h1>
+<p class="meta">最終更新：2026年6月（ベータ版）／提供者：[会社名・屋号を記入]（以下「当社」）</p>
+
+<h2>1. 取得する情報</h2>
+<table>
+<tr><th>情報</th><th>内容</th></tr>
+<tr><td>アカウント情報</td><td>メールアドレス、パスワード（ハッシュ化して保管）</td></tr>
+<tr><td>診療会話の音声</td><td>録音機能を利用した場合の音声データ。<b>サーバーには保存せず、文字起こし処理後に破棄</b>します</td></tr>
+<tr><td>会話テキスト・補足メモ</td><td>文字起こし結果・手入力テキスト・既往歴等のメモ。<b>患者に関する要配慮個人情報を含み得ます</b></td></tr>
+<tr><td>生成されたカルテ下書き</td><td>SOAP形式の生成結果（保存機能を利用した場合）</td></tr>
+<tr><td>フィードバック</td><td>「ご意見」機能から送信された内容</td></tr>
+<tr><td>利用記録</td><td>利用回数（コスト管理のため）、アクセスに伴う技術的ログ</td></tr>
+</table>
+
+<h2>2. 利用目的</h2>
+<ol>
+<li>カルテ下書きの生成・表示・保存（本サービスの提供）</li>
+<li>不正利用防止、利用回数の管理</li>
+<li>ベータ版の品質改善（フィードバックの分析）</li>
+<li>お問い合わせ対応</li>
+</ol>
+<p>取得した情報を<b>当社がAIモデルの学習に利用することはありません</b>。</p>
+
+<h2>3. 外部サービスへの提供（重要：海外への送信を含みます）</h2>
+<p>本サービスの提供のため、以下の外部サービスを利用し、必要な範囲でデータを送信します。</p>
+<table>
+<tr><th>送信先</th><th>所在国</th><th>送信する情報・目的</th><th>取扱い</th></tr>
+<tr><td>OpenAI（Whisper API）</td><td>米国</td><td>録音音声（文字起こしのため）</td><td>APIに送信されたデータは既定でモデル学習に使用されません。不正監視等のため一定期間保持後に削除されます（提供元ポリシーによる）</td></tr>
+<tr><td>Anthropic（Claude API）</td><td>米国</td><td>会話テキスト・補足メモ（SOAP生成のため）</td><td>APIに送信されたデータは既定でモデル学習に使用されません（提供元ポリシーによる）</td></tr>
+<tr><td>Supabase</td><td>[リージョンを記入：例 日本（東京）]</td><td>アカウント情報・保存したカルテ下書き等（認証・保存のため）</td><td>行レベルセキュリティにより医院単位でアクセス分離</td></tr>
+<tr><td>Render</td><td>米国 [リージョンを確認のうえ記入]</td><td>通信の中継（アプリケーションサーバー）</td><td>音声・テキストは処理のため一時的に経由（永続保存しない）</td></tr>
+</table>
+<p>外国にある第三者への提供に関する個人情報保護法上の整理（本人への情報提供・同意の取得方法等）は、利用医院における患者への説明と併せて運用します。詳細は当社までお問い合わせください。</p>
+
+<h2>4. 安全管理措置</h2>
+<ol>
+<li>通信の暗号化（HTTPS）</li>
+<li>ログインによるアクセス制御、医院単位のデータ分離（行レベルセキュリティ）</li>
+<li>録音音声の非保存（処理後破棄）</li>
+<li>APIキー等の秘密情報の安全な管理</li>
+</ol>
+
+<h2>5. 保存期間・削除</h2>
+<ol>
+<li>保存されたカルテ下書きは、利用者が画面上からいつでも削除できます。</li>
+<li>アカウント削除のご依頼があった場合、合理的な期間内に関連データを削除します。</li>
+<li>ベータ版終了時のデータの取扱いは、事前に告知します。</li>
+</ol>
+
+<h2>6. 開示・訂正・利用停止等</h2>
+<p>保有個人データの開示・訂正・利用停止等のご請求は、下記窓口までご連絡ください。患者ご本人からのお申し出は、原則として診療を行った医院を通じてご対応をお願いします。</p>
+
+<h2>7. 改定</h2>
+<p>本ポリシーは必要に応じて改定し、重要な変更は本サービス上で告知します。</p>
+
+<p class="meta">お問い合わせ窓口：[会社名・担当・メールアドレスを記入]</p>
+</div></div>
+</body>
+</html>
