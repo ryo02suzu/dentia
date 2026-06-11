@@ -41,6 +41,14 @@ app.get(["/", "/index.html"], (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// 利用規約・プライバシーポリシー（ドラフト。弁護士レビュー後に正式版へ差し替え）
+app.get("/terms", (_req, res) => {
+  res.sendFile(path.join(__dirname, "legal", "terms.html"));
+});
+app.get("/privacy", (_req, res) => {
+  res.sendFile(path.join(__dirname, "legal", "privacy.html"));
+});
+
 // 音声はメモリ上のみで保持（ディスクに保存しない＝医療データを残さない）。Whisper上限の25MBに合わせる。
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -210,6 +218,7 @@ ${tmpl.guide}
 
 # 重要な制約
 - A（評価・診断）は確定診断ではなく、最終的に歯科医師が確定する前提の「下書き・見立て」である。断定を避け、「〜の可能性」「〜を疑う」「〜を鑑別中」「要精査」等の表現を用いる。
+- A（評価・診断）は、会話中に歯科医師が述べた評価・見立て・診断の「整理」に限定する。会話に出ていない新たな診断名・病名をAIが独自に推論して追加・提案しない（本サービスは診断支援ではなく記録作成支援である）。
 - 会話に存在しない検査値や所見を創作しない。会話から読み取れない項目は無理に埋めず、「会話からは確認できず」等と記すか、簡潔にとどめる。
 - 補足メモ（既往歴・アレルギー等）が与えられた場合は、関連する箇所（特に O / A / P）に適切に反映する。
 - 各セクションは要点を絞り、冗長にしない。`;
@@ -375,7 +384,22 @@ app.get("/api/config", (_req, res) => {
   res.json({
     supabaseUrl: normalizeSupabaseUrl(process.env.SUPABASE_URL),
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+    inviteRequired: !!process.env.BETA_INVITE_CODE,
   });
+});
+
+/* ------------------------------------------------------------------ *
+ * 招待コード検証（クローズドβ）
+ *   BETA_INVITE_CODE を設定すると新規登録に招待コードが必要になる。
+ *   未設定なら従来どおりオープン（ローカル/開発用の安全網）。
+ *   ※ コード自体はフロントに渡さず、サーバー側で照合する。
+ * ------------------------------------------------------------------ */
+app.post("/api/validate-invite", rateLimit, (req, res) => {
+  const expected = process.env.BETA_INVITE_CODE;
+  if (!expected) return res.json({ ok: true }); // 招待制が無効なら常にOK
+  const code = ((req.body && req.body.code) || "").trim();
+  if (code && code === expected) return res.json({ ok: true });
+  return res.status(403).json({ ok: false, error: "招待コードが正しくありません。" });
 });
 
 app.get("/api/health", (_req, res) => {
