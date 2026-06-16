@@ -453,6 +453,11 @@
     display:grid; place-items:center; padding:20px;}
   .modal{width:100%; max-width:460px;}
   .modal .field-label{margin-bottom:10px;}
+  .qr-note{font-size:12.5px; color:var(--ink-soft); line-height:1.7; margin:0 0 12px;}
+  .qr-loading{display:grid; place-items:center; padding:30px 0;}
+  .qr-item{text-align:center; margin:10px 0 4px;}
+  .qr-label{font-size:12px; font-weight:700; color:var(--primary-deep); margin-bottom:6px;}
+  .qr-img{width:100%; max-width:300px; height:auto; border:1px solid var(--line); border-radius:12px; background:#fff;}
 
   /* ── スマホ対応（既存デザイン・配色・フォントはそのまま、狭い画面に収める調整のみ） ── */
   @media (max-width:640px){
@@ -504,6 +509,8 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <!-- Supabase（認証・DB）。anonキーはクライアント用途で、データ保護はRLSで担保 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- QRコード生成（電子カルテ/レセコン端末へネット非経由で本文を渡す） -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
   <script type="text/babel">
 // @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
@@ -1066,6 +1073,7 @@ function App({ sb=null, session=null, clinicId=null }){
   const authEnabled = !!(sb && session);
   const [showRecords, setShowRecords] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const [tmpl, setTmpl] = useState("first");
   const [convo, setConvo] = useState(DATA.first.convo);
@@ -1505,8 +1513,8 @@ function App({ sb=null, session=null, clinicId=null }){
             {phase==="done" && (
               <React.Fragment>
                 <div className="action-bar">
-                  <button className="btn btn-emr" onClick={pasteEMR}>
-                    <Ico.link stroke="currentColor"/> レセコンに転記
+                  <button className="btn btn-emr" onClick={()=>setShowQR(true)}>
+                    <Ico.link stroke="currentColor"/> QRで転記
                   </button>
                   <button className="btn btn-ghost" onClick={copyAll}>
                     <Ico.copy stroke="currentColor"/> コピー
@@ -1532,6 +1540,9 @@ function App({ sb=null, session=null, clinicId=null }){
       )}
       {authEnabled && showFeedback && (
         <FeedbackModal sb={sb} showToast={showToast} onClose={()=>setShowFeedback(false)} />
+      )}
+      {showQR && (
+        <QRModal soap={resultRef.current} onClose={()=>setShowQR(false)} />
       )}
 
       <TweaksPanel>
@@ -1784,6 +1795,54 @@ function FeedbackModal({ sb, onClose, showToast }){
             <button className="btn btn-primary" onClick={submit} disabled={busy || !msg.trim()}>
               {busy ? "送信中…" : "送信"}
             </button>
+            <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QRModal({ soap, onClose }){
+  const [imgs, setImgs] = useState(null); // [{label, src}] / null=生成中
+  const [err, setErr] = useState("");
+  const [split, setSplit] = useState(false); // 長文でブロック分割したか
+
+  useEffect(()=>{
+    let alive = true;
+    const Q = window.QRCode;
+    if(!Q){ setErr("QRコードの生成ライブラリを読み込めませんでした。「コピー」をご利用ください。"); return; }
+    const opt = { errorCorrectionLevel:"L", margin:1, width:320, color:{ dark:"#16323A", light:"#ffffff" } };
+    const fullText = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]||""}`).join("\n\n");
+    Q.toDataURL(fullText, opt).then(src=>{
+      if(alive) setImgs([{ label:"SOAP全文", src }]);
+    }).catch(()=>{
+      // 1枚に収まらない → S/O/A/P ごとに分割
+      if(alive) setSplit(true);
+      Promise.all(BLOCKS.map((b,i)=>
+        Q.toDataURL(`【${b.key}】${b.jp}\n${soap[i]||""}`, opt)
+          .then(src=>({ label:`${b.key}：${b.jp}`, src })).catch(()=>null)
+      )).then(arr=>{ if(alive) setImgs((arr||[]).filter(Boolean)); });
+    });
+    return ()=>{ alive=false; };
+  },[]);
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal panel" onClick={e=>e.stopPropagation()}>
+        <div className="in-body">
+          <div className="field-label">QRで転記 <span className="opt">ネットを介さず端末へ</span></div>
+          <p className="qr-note">電子カルテ／レセコン端末のバーコードリーダーで読み取ると、本文を入力欄へ転記できます{split?"（長いため S/O/A/P に分割しています。順に読み取ってください）":""}。</p>
+          {err && <div className="auth-err">{err}</div>}
+          {!err && imgs===null && <div className="qr-loading"><div className="spinner"></div></div>}
+          {!err && imgs && imgs.length===0 && <div className="auth-err">QRコードを生成できませんでした。「コピー」をご利用ください。</div>}
+          {!err && imgs && imgs.map((im,i)=>(
+            <div className="qr-item" key={i}>
+              <div className="qr-label">{im.label}</div>
+              <img className="qr-img" src={im.src} alt={"QR: "+im.label}/>
+            </div>
+          ))}
+          <div className="gen-row" style={{marginTop:14}}>
             <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
           </div>
         </div>
