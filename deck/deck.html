@@ -53,19 +53,19 @@
 
   /* cover */
   .cover{ background:linear-gradient(120deg,#0E9AA7 0%,#0C8D99 50%,#0A6B73 100%); }
-  .cover .left{ position:absolute; left:80px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; }
+  .cover .left{ position:absolute; left:80px; top:0; bottom:0; width:500px; display:flex; flex-direction:column; justify-content:center; }
   .cover .brand{ display:flex; align-items:center; gap:12px; margin-bottom:24px; }
   .cover .brand .mk{ width:54px; height:54px; border-radius:14px; background:rgba(255,255,255,.16);
     display:flex; align-items:center; justify-content:center; }
   .cover .brand .wd{ font-family:"Outfit",sans-serif; font-weight:700; font-size:52px; color:#fff; letter-spacing:1px; }
   .cover .brand .wd b{ color:#CFF3F6; }
   .cover .tag{ font-size:25px; font-weight:700; color:#Eafdff; line-height:1.5; margin-bottom:18px; }
-  .cover .desc{ font-size:15px; color:rgba(255,255,255,.92); line-height:1.85; }
+  .cover .desc{ font-size:14px; color:rgba(255,255,255,.92); line-height:1.85; }
   .cover .ver{ position:absolute; left:80px; top:54px; font-family:"Outfit",sans-serif; font-size:14px; color:rgba(255,255,255,.8); letter-spacing:1px; }
   .cover .beta{ display:inline-block; margin-left:10px; padding:2px 9px; border-radius:20px;
     background:rgba(255,255,255,.2); font-family:"Outfit",sans-serif; font-size:12px; font-weight:600; vertical-align:middle; }
-  .cover .shotwrap{ position:absolute; right:-30px; top:120px; }
-  .browser{ width:760px; border-radius:12px 12px 10px 10px; overflow:hidden;
+  .cover .shotwrap{ position:absolute; right:-40px; top:128px; }
+  .browser{ width:720px; border-radius:12px 12px 10px 10px; overflow:hidden;
     box-shadow:0 30px 70px rgba(0,0,0,.32); background:#fff; }
   .browser .bar{ height:30px; background:#E8EEF0; display:flex; align-items:center; gap:7px; padding:0 13px; }
   .browser .bar i{ width:11px; height:11px; border-radius:50%; background:#CBD5D8; display:inline-block; }
@@ -75,7 +75,8 @@
   .phone img{ display:block; width:100%; }
 
   /* generic helpers */
-  .center{ display:flex; align-items:center; justify-content:center; flex-direction:column; height:100%; }
+  .center{ display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  .vc{ display:flex; flex-direction:column; justify-content:center; }
   .concept-k{ font-family:"Outfit",sans-serif; letter-spacing:3px; color:var(--primary); font-weight:600; font-size:18px; margin-bottom:18px; }
   .concept-t{ font-size:40px; font-weight:700; color:var(--primary-deep); line-height:1.45; text-align:center; }
 
@@ -86,7 +87,7 @@
     background:var(--primary); }
   .painbox li b{ color:var(--primary-dark); }
 
-  .cards{ display:grid; gap:20px; height:100%; }
+  .cards{ display:grid; gap:20px; height:100%; align-content:center; }
   .card{ background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden;
     box-shadow:0 8px 24px rgba(10,94,104,.06); display:flex; flex-direction:column; }
   .card .ch{ background:var(--primary); color:#fff; font-weight:700; font-size:18px; text-align:center; padding:13px; }
@@ -131,7 +132,7 @@
   .browser2 .bar i{ width:9px; height:9px; border-radius:50%; background:#CBD5D8; }
   .browser2 img{ display:block; width:100%; }
 
-  .step{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; height:100%; }
+  .step{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; height:100%; align-content:center; }
   .stepc{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 8px 22px rgba(10,94,104,.06);
     display:flex; flex-direction:column; }
   .stepc .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:34px; color:var(--primary); line-height:1; }
@@ -173,7 +174,7 @@
   <div class="left">
     <div class="brand"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
     <div class="tag">歯科診療の会話から、<br/>歯科SOAPカルテの下書きを自動生成。</div>
-    <div class="desc">歯科医院での医療従事者と患者さんの会話を、AIが文字起こし・要約し、<br/>歯式・歯周検査・処置内容まで反映した SOAP 形式のカルテ下書きを作成する、<br/><b style="color:#fff">歯科専用</b>のAIカルテ作成支援サービスです。</div>
+    <div class="desc">歯科医院での会話を、AIが文字起こし・要約し、<br/>歯式・歯周検査・処置内容まで反映した<br/>SOAP 形式のカルテ下書きを作成する、<br/><b style="color:#fff">歯科専用</b>のAIカルテ作成支援サービスです。</div>
   </div>
   <div class="shotwrap">
     <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/03-result.png" alt=""/></div>
@@ -341,7 +342,10 @@
       <div class="card"><div class="cb"><h4>12 の場面別・役割別テンプレ</h4>
         初診／再診／SPT／補綴／根管／自費カウンセリング／訪問／歯周精密／抜歯外科／小児／矯正／衛生士(SOAPIE)。</div></div>
     </div>
-    <div class="browser2"><div class="bar"><i></i><i></i><i></i></div><img src="assets/10-result-crop.png" alt=""/></div>
+    <div class="browser2" style="height:430px; display:flex; flex-direction:column;">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <img src="assets/11-perio-card.png" style="flex:1; object-fit:cover; object-position:top;" alt=""/>
+    </div>
   </div>
   <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
 </section>
@@ -470,7 +474,7 @@
 <!-- Compare with generic tools -->
 <section class="slide">
   <div class="head"><h2>汎用の音声カルテツールとの違い</h2><div class="rule"></div></div>
-  <div class="body" style="top:124px;">
+  <div class="body vc" style="top:124px;">
     <table class="t">
       <thead><tr><th></th><th>dentia（歯科特化）</th><th>汎用の音声カルテ</th></tr></thead>
       <tbody>
@@ -490,7 +494,7 @@
 <!-- Compare with clerk -->
 <section class="slide">
   <div class="head"><h2>医療クラークを採用する場合との比較</h2><div class="rule"></div></div>
-  <div class="body" style="top:124px;">
+  <div class="body vc" style="top:124px;">
     <table class="t">
       <thead><tr><th>常勤医師1名のイメージ</th><th>dentia</th><th>医療クラーク（人）</th></tr></thead>
       <tbody>
@@ -532,7 +536,7 @@
 <!-- Pricing (honest, placeholder) -->
 <section class="slide">
   <div class="head"><h2>料金について　<span class="tagchip">β：無償提供</span></h2><div class="rule"></div></div>
-  <div class="body" style="top:130px;">
+  <div class="body vc" style="top:130px;">
     <div class="lead" style="margin-bottom:22px;">
       クローズドβ期間は<b>無償</b>でご提供し、現場での有用性を一緒に検証させてください。<br/>
       正式版の料金は、検証結果をふまえて決定します（下記は<b>イメージ</b>であり確定ではありません）。
@@ -583,7 +587,7 @@
 <!-- FAQ -->
 <section class="slide">
   <div class="head"><h2>よくあるご質問</h2><div class="rule"></div></div>
-  <div class="body" style="top:120px;">
+  <div class="body vc" style="top:120px;">
     <div class="faq">
       <div class="q">Q1. iPhone で利用できますか？</div>
       <div class="a">A1. はい。スマートフォンのブラウザからご利用いただけます。</div>
@@ -607,7 +611,7 @@
 <!-- Company / contact (honest placeholders) -->
 <section class="slide">
   <div class="head"><h2>提供主体・お問い合わせ</h2><div class="rule"></div></div>
-  <div class="body" style="top:128px;">
+  <div class="body vc" style="top:128px;">
     <table class="kv">
       <tr><td class="k">サービス名</td><td>dentia（歯科専用 AIカルテ作成支援）</td></tr>
       <tr><td class="k">提供主体</td><td>［　記入　］（現在は個人開発・歯科学生による開発）</td></tr>
