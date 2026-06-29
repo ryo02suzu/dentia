@@ -969,11 +969,18 @@ const BLOCKS = [
 ];
 
 const TEMPLATES = [
-  { id:"first",  label:"初診",             tag:"First",  time:"4.2" },
-  { id:"recall", label:"再診",             tag:"Recall", time:"3.6" },
-  { id:"spt",    label:"メンテナンス(SPT)", tag:"SPT",    time:"3.9" },
-  { id:"pros",   label:"補綴",             tag:"Pros",   time:"4.0" },
-  { id:"endo",   label:"根管治療",          tag:"Endo",   time:"4.4" },
+  { id:"first",   label:"初診",             tag:"First",  time:"4.2" },
+  { id:"recall",  label:"再診",             tag:"Recall", time:"3.6" },
+  { id:"spt",     label:"メンテナンス(SPT)", tag:"SPT",    time:"3.9" },
+  { id:"pros",    label:"補綴",             tag:"Pros",   time:"4.0" },
+  { id:"endo",    label:"根管治療",          tag:"Endo",   time:"4.4" },
+  { id:"counsel", label:"自費カウンセリング", tag:"Counsel",time:"4.5" },
+  { id:"visit",   label:"訪問診療",          tag:"Visit",  time:"4.3" },
+  { id:"perio",   label:"歯周精密検査",      tag:"Perio",  time:"4.1" },
+  { id:"surgery", label:"抜歯・口腔外科",    tag:"Surg",   time:"4.0" },
+  { id:"pedo",    label:"小児",             tag:"Pedo",   time:"3.7" },
+  { id:"ortho",   label:"矯正相談",          tag:"Ortho",  time:"4.2" },
+  { id:"hygiene", label:"衛生士記録(SOAPIE)",tag:"DH",     time:"3.9" },
 ];
 
 const DATA = {
@@ -1042,6 +1049,48 @@ const DATA = {
       "#36 急性根尖性歯周炎、失活歯。感染根管治療の適応。",
       "#36 感染根管治療を開始。根管長測定(EMR)後、機械的・化学的拡大洗浄を実施。次回 根管貼薬を予定、消炎を確認。",
     ],
+  },
+  counsel: {
+    convo:`医師：今日はインプラントのご相談ですね。気になっているのはどのあたりですか？
+患者：右下の奥歯が前に抜けたままで、噛みにくくて。
+医師：選択肢としてはインプラント、ブリッジ、入れ歯があります。それぞれ費用や体への負担が違います。
+患者：できれば長く持つものがいいです。費用も知りたいです。
+医師：ではメリット・リスクと概算費用をご説明しますね。`,
+  },
+  visit: {
+    convo:`医師：お加減いかがですか。お食事は摂れていますか？
+家族：最近むせることが増えて、義歯も合っていないようで。
+医師：お薬は血をサラサラにするものを飲まれていますね。お口の中を拝見します。
+医師：義歯の不適合と、下の歯に汚れの付着がありますね。`,
+  },
+  perio: {
+    convo:`医師：本日は歯周精密検査を行います。
+医師：16番、頬側3・2・3、舌側2・3・4、遠心舌側でBOPプラス、動揺度1。
+医師：26番、頬側2・2・3、舌側2・2・3、BOPマイナス。
+医師：PCRは18パーセントでした。`,
+  },
+  surgery: {
+    convo:`医師：今日は右下の親知らずの抜歯ですね。体調やお薬は変わりないですか？
+患者：はい、特に。血圧の薬を飲んでいます。
+医師：レントゲンでは半分埋まっていて、神経に少し近いです。説明のうえ進めますね。
+医師：浸潤麻酔のあと、分割して抜去します。`,
+  },
+  pedo: {
+    convo:`母：上の前歯が茶色くなってきて心配で。本人は痛がってはいないんですが。
+医師：お子さんはよく頑張ってお口を開けてくれていますね。拝見します。
+医師：上の前歯に初期のむし歯がありますね。仕上げ磨きと、フッ素を塗っていきましょう。`,
+  },
+  ortho: {
+    convo:`患者：前歯のガタガタが気になって、矯正を考えています。
+医師：気になるのは見た目ですね。期間や装置のご希望はありますか？
+患者：できれば目立たない方法がいいです。費用と期間が知りたいです。
+医師：大まかに拝見して、装置の選択肢と概算をお伝えし、次回 精密検査をご案内します。`,
+  },
+  hygiene: {
+    convo:`衛生士：本日はメンテナンスですね。気になるところはありますか？
+患者：歯みがきのとき、たまに血が出ます。
+衛生士：では歯ぐきの状態を見て、お掃除しますね。PCRは20パーセント、下の前歯にBOPがあります。
+衛生士：スケーリングとPMTC、ブラッシング指導を行いました。`,
   },
 };
 
@@ -1124,7 +1173,7 @@ function App({ sb=null, session=null, clinicId=null }){
 
   const pickTemplate = (id)=>{
     setTmpl(id);
-    setConvo(DATA[id].convo);
+    setConvo((DATA[id] && DATA[id].convo) || "");
     setPhase("idle"); setGenTime(null); setRevealed(-1); setActiveIdx(-1);
     setTyped(["","","",""]); setErrMsg("");
     clearTimers();
