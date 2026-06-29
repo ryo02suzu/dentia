@@ -97,6 +97,31 @@ async function testPostprocess() {
     assert.strictEqual(apply("エスアールピー実施"), "SRP実施");
   });
 
+  // v1 追加ルール（誤変換の訂正）
+  await test("applyDictionary: ガッタパッチャ → ガッタパーチャ", () => {
+    assert.strictEqual(apply("根管をガッタパッチャで充填"), "根管をガッタパーチャで充填");
+  });
+  await test("applyDictionary: バツズイ → 抜髄", () => {
+    assert.strictEqual(apply("麻酔下でバツズイを実施"), "麻酔下で抜髄を実施");
+  });
+  await test("applyDictionary: 根管帳測定 → 根管長測定", () => {
+    assert.strictEqual(apply("EMRで根管帳測定"), "EMRで根管長測定");
+  });
+  await test("applyDictionary: 打診痛プラス → 打診痛(+)", () => {
+    assert.strictEqual(apply("打診痛プラス"), "打診痛(+)");
+  });
+
+  // v1 誤爆ガード（通常会話・別文脈は壊さない）
+  await test("applyDictionary[誤爆防止]: バツイチ/罰 は変えない", () => {
+    assert.strictEqual(apply("バツイチの友人に罰が当たる"), "バツイチの友人に罰が当たる");
+  });
+  await test("applyDictionary[誤爆防止]: プラス思考 は変えない", () => {
+    assert.strictEqual(apply("プラス思考でいきましょう"), "プラス思考でいきましょう");
+  });
+  await test("applyDictionary[誤爆防止]: 通帳の測定 は変えない", () => {
+    assert.strictEqual(apply("銀行の通帳を記帳して身長を測定する"), "銀行の通帳を記帳して身長を測定する");
+  });
+
   // 空・falsy はそのまま返す（破壊しない）
   await test("applyDictionary: 空文字はそのまま", () => {
     assert.strictEqual(apply(""), "");
