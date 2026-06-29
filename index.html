@@ -459,6 +459,29 @@
   .qr-label{font-size:12px; font-weight:700; color:var(--primary-deep); margin-bottom:6px;}
   .qr-img{width:100%; max-width:300px; height:auto; border:1px solid var(--line); border-radius:12px; background:#fff;}
 
+  /* 編集可能なSOAPブロック・項目別コピー */
+  .block-edit{width:100%; border:1px solid var(--line); border-radius:10px; background:#FBFDFD;
+    padding:10px 12px; font-family:inherit; font-size:14.5px; line-height:1.85; color:var(--ink);
+    resize:vertical; min-height:62px;}
+  .block-edit:focus{outline:none; border-color:var(--blk); box-shadow:0 0 0 3px var(--blk-tint); background:#fff;}
+  .blk-copy{margin-left:auto; background:transparent; border:none; cursor:pointer; color:var(--ink-faint);
+    width:30px; height:30px; border-radius:8px; display:grid; place-items:center; padding:0;}
+  .blk-copy:hover{background:var(--primary-tint); color:var(--primary-dark);}
+  .blk-copy svg{width:15px; height:15px;}
+  /* 出力スタイル切替（簡潔/標準/詳細） */
+  .style-row{display:flex; align-items:center; gap:9px; margin-top:14px;}
+  .style-label{font-size:12.5px; font-weight:700; color:var(--ink);}
+  .seg{display:inline-flex; background:var(--line-soft); border-radius:10px; padding:3px;}
+  .seg button{font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; border:none;
+    background:transparent; color:var(--ink-soft); padding:6px 12px; border-radius:8px;}
+  .seg button.on{background:#fff; color:var(--primary-deep); box-shadow:var(--shadow-soft);}
+  /* 保存カルテ 検索 */
+  .rec-search{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .rec-search input, .rec-search select{border:1.5px solid var(--line); border-radius:10px;
+    background:#FBFDFD; padding:9px 12px; font-family:inherit; font-size:13.5px; color:var(--ink);}
+  .rec-search input{flex:1; min-width:160px;}
+  .rec-search input:focus, .rec-search select:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-tint);}
+
   /* ── スマホ対応（既存デザイン・配色・フォントはそのまま、狭い画面に収める調整のみ） ── */
   @media (max-width:640px){
     /* 横スクロールを起こさない */
@@ -1128,6 +1151,7 @@ function App({ sb=null, session=null, clinicId=null }){
   const [convo, setConvo] = useState(DATA.first.convo);
   const [memo, setMemo] = useState("");
   const [inputMode, setInputMode] = useState("record"); // 録音を主たる入力に
+  const [detail, setDetail] = useState("standard");     // 出力スタイル：brief|standard|detailed
 
   const [phase, setPhase] = useState("idle"); // idle | loading | done | error
   const [revealed, setRevealed] = useState(-1);
@@ -1136,6 +1160,9 @@ function App({ sb=null, session=null, clinicId=null }){
   const [genTime, setGenTime] = useState(null);
   const [errMsg, setErrMsg] = useState("");
   const [toast, setToast] = useState(null);
+  const [editedSoap, setEditedSoap] = useState(["","","",""]); // 編集可能なSOAP本文
+  const [savedRecordId, setSavedRecordId] = useState(null);    // 自動保存したカルテのid（編集の更新用）
+  const [showReferral, setShowReferral] = useState(false);     // 紹介状モーダル
 
   // 録音まわりの状態
   const [recState, setRecState] = useState("idle"); // idle | recording | transcribing | error
@@ -1223,6 +1250,7 @@ function App({ sb=null, session=null, clinicId=null }){
     setErrMsg("");
     setPhase("loading"); setGenTime(null);
     setRevealed(-1); setActiveIdx(-1); setTyped(["","","",""]);
+    setSavedRecordId(null);
     resultRef.current = ["","","",""];
 
     const started = Date.now();
@@ -1230,7 +1258,7 @@ function App({ sb=null, session=null, clinicId=null }){
       const res = await fetch("/api/generate", {
         method:"POST",
         headers:{ "Content-Type":"application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ conversation: text, memo, template: tmpl }),
+        body: JSON.stringify({ conversation: text, memo, template: tmpl, detail }),
       });
       const data = await res.json().catch(()=>({}));
       if(res.status===401 && sb){
@@ -1241,6 +1269,7 @@ function App({ sb=null, session=null, clinicId=null }){
         throw new Error(data.error || `生成に失敗しました（HTTP ${res.status}）`);
       }
       const soap = [data.S||"", data.O||"", data.A||"", data.P||""];
+      setEditedSoap(soap);            // 編集可能なコピーを用意
       setGenTime(((Date.now()-started)/1000).toFixed(1));
       setPhase("done");
       animateSoap(soap);
@@ -1252,16 +1281,16 @@ function App({ sb=null, session=null, clinicId=null }){
           s: soap[0], o: soap[1], a: soap[2], p: soap[3],
         };
         if(clinicId) payload.clinic_id = clinicId; // 医院があれば医院単位で共有（未マイグレーション時は付けない）
-        sb.from("records").insert(payload).then(({error})=>{
+        sb.from("records").insert(payload).select("id").single().then(({data:row,error})=>{
           if(error){ console.error("save error:", error); showToast("カルテの保存に失敗しました"); }
-          else { showToast("カルテを保存しました"); }
+          else { if(row && row.id) setSavedRecordId(row.id); showToast("カルテを保存しました"); }
         });
       }
     }catch(err){
       setPhase("error");
       setErrMsg(err.message || "サーバーに接続できませんでした。サーバーが起動しているか確認してください。");
     }
-  },[convo, memo, tmpl, sb, session, clinicId]);
+  },[convo, memo, tmpl, detail, sb, session, clinicId]);
 
   // 最新の runGeneration を保持（録音停止時のコールバックから最新テンプレ等で呼ぶため）
   const genRef = useRef();
@@ -1336,14 +1365,25 @@ function App({ sb=null, session=null, clinicId=null }){
     else startRecording();
   };
 
-  const copyAll = ()=>{
-    const soap = resultRef.current;
-    const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${soap[i]||""}`).join("\n\n");
+  const copyText = (txt, msg)=>{
     if(navigator.clipboard) navigator.clipboard.writeText(txt).catch(()=>{});
-    showToast("SOAPカルテをコピーしました");
+    showToast(msg);
   };
+  const copyAll = ()=>{
+    const txt = BLOCKS.map((b,i)=>`【${b.key}】${b.jp}\n${editedSoap[i]||""}`).join("\n\n");
+    copyText(txt, "SOAPカルテをコピーしました");
+  };
+  const copyBlock = (i)=> copyText(editedSoap[i]||"", `${BLOCKS[i].key}（${BLOCKS[i].jp}）をコピーしました`);
+  const setBlock = (i,v)=> setEditedSoap(prev=>{ const n=[...prev]; n[i]=v; return n; });
 
-  const pasteEMR = ()=> showToast("レセコンへ転記しました（デモ）");
+  // 編集内容を保存済みカルテに反映（自動保存後に手直しした場合）
+  const updateSavedRecord = ()=>{
+    if(!sb || !savedRecordId){ showToast("先に生成・保存してください"); return; }
+    sb.from("records").update({ s:editedSoap[0], o:editedSoap[1], a:editedSoap[2], p:editedSoap[3] })
+      .eq("id", savedRecordId).then(({error})=>{
+        showToast(error ? "更新に失敗しました" : "編集内容を保存しました");
+      });
+  };
 
   const canGen = convo.trim().length>0 && phase!=="loading" && recState!=="recording" && recState!=="transcribing";
   const live = phase==="done";
@@ -1476,6 +1516,15 @@ function App({ sb=null, session=null, clinicId=null }){
                 </div>
               </div>
 
+              <div className="style-row">
+                <span className="style-label">出力スタイル</span>
+                <div className="seg">
+                  {[["brief","簡潔"],["standard","標準"],["detailed","詳細"]].map(([v,l])=>(
+                    <button key={v} className={detail===v?"on":""} onClick={()=>setDetail(v)}>{l}</button>
+                  ))}
+                </div>
+              </div>
+
               <div className="gen-row">
                 <button className="btn btn-primary" onClick={()=>runGeneration()} disabled={!canGen}>
                   {phase==="loading"
@@ -1548,11 +1597,21 @@ function App({ sb=null, session=null, clinicId=null }){
                           <span className="en">{b.en}</span>
                           <span className="jp">{b.jp}</span>
                         </span>
+                        {activeIdx===-1 && (
+                          <button className="blk-copy" onClick={()=>copyBlock(i)} title="この項目をコピー">
+                            <Ico.copy stroke="currentColor"/>
+                          </button>
+                        )}
                       </div>
-                      <div className="block-body">
-                        {typed[i]}
-                        {activeIdx===i && typed[i].length<(resultRef.current[i]||"").length && <span className="caret"></span>}
-                      </div>
+                      {activeIdx===-1 ? (
+                        <textarea className="block-edit" value={editedSoap[i]}
+                          onChange={e=>setBlock(i, e.target.value)} />
+                      ) : (
+                        <div className="block-body">
+                          {typed[i]}
+                          {activeIdx===i && typed[i].length<(resultRef.current[i]||"").length && <span className="caret"></span>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1568,6 +1627,12 @@ function App({ sb=null, session=null, clinicId=null }){
                   <button className="btn btn-ghost" onClick={copyAll}>
                     <Ico.copy stroke="currentColor"/> コピー
                   </button>
+                  <button className="btn btn-ghost" onClick={()=>setShowReferral(true)}>
+                    <Ico.doc stroke="currentColor"/> 紹介状
+                  </button>
+                  {authEnabled && savedRecordId && (
+                    <button className="btn btn-ghost" onClick={updateSavedRecord}>編集を保存</button>
+                  )}
                 </div>
                 <div className="res-foot">
                   <Ico.check stroke="var(--p-color)"/>
@@ -1591,7 +1656,11 @@ function App({ sb=null, session=null, clinicId=null }){
         <FeedbackModal sb={sb} showToast={showToast} onClose={()=>setShowFeedback(false)} />
       )}
       {showQR && (
-        <QRModal soap={resultRef.current} onClose={()=>setShowQR(false)} />
+        <QRModal soap={editedSoap} onClose={()=>setShowQR(false)} />
+      )}
+      {showReferral && (
+        <ReferralModal convo={convo} memo={memo} authHeaders={authHeaders}
+          copyText={copyText} onClose={()=>setShowReferral(false)} />
       )}
 
       <TweaksPanel>
@@ -1728,6 +1797,8 @@ function RecordsView({ sb, onClose }){
   const [rows, setRows] = useState(null); // null=loading
   const [err, setErr] = useState("");
   const [sel, setSel] = useState(null);
+  const [q, setQ] = useState("");        // 検索ワード
+  const [fTmpl, setFTmpl] = useState(""); // テンプレ絞り込み
 
   useEffect(()=>{
     let alive = true;
@@ -1771,19 +1842,40 @@ function RecordsView({ sb, onClose }){
           <div className="rec-empty">保存されたカルテはまだありません。<br/>録音または手入力でSOAPを生成すると、ここに自動で保存されます。</div>
         )}
 
-        {rows && !err && !sel && rows.length>0 && (
-          <div className="rec-list">
-            {rows.map(r=>(
-              <div key={r.id} className="rec-item" onClick={()=>setSel(r)}>
-                <div className="ri-main">
-                  <div className="ri-tmpl">{tmplLabel(r.template)}</div>
-                  <div className="ri-snip">{(r.s||r.transcript||"").slice(0,80)}</div>
-                </div>
-                <div className="ri-date">{fmtDate(r.created_at)}</div>
+        {rows && !err && !sel && rows.length>0 && (()=>{
+          const ql = q.trim().toLowerCase();
+          const filtered = rows.filter(r=>{
+            if(fTmpl && r.template!==fTmpl) return false;
+            if(!ql) return true;
+            return [r.s,r.o,r.a,r.p,r.transcript,r.memo,tmplLabel(r.template)]
+              .some(v=>(v||"").toLowerCase().includes(ql));
+          });
+          return (
+            <React.Fragment>
+              <div className="rec-search">
+                <input type="text" value={q} onChange={e=>setQ(e.target.value)}
+                  placeholder="キーワード検索（歯式・所見・テンプレ名 など）"/>
+                <select value={fTmpl} onChange={e=>setFTmpl(e.target.value)}>
+                  <option value="">すべての処置</option>
+                  {TEMPLATES.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}
+                </select>
               </div>
-            ))}
-          </div>
-        )}
+              {filtered.length===0
+                ? <div className="rec-empty">該当するカルテがありません。</div>
+                : <div className="rec-list">
+                    {filtered.map(r=>(
+                      <div key={r.id} className="rec-item" onClick={()=>setSel(r)}>
+                        <div className="ri-main">
+                          <div className="ri-tmpl">{tmplLabel(r.template)}</div>
+                          <div className="ri-snip">{(r.s||r.transcript||"").slice(0,80)}</div>
+                        </div>
+                        <div className="ri-date">{fmtDate(r.created_at)}</div>
+                      </div>
+                    ))}
+                  </div>}
+            </React.Fragment>
+          );
+        })()}
 
         {sel && (
           <div>
@@ -1893,6 +1985,62 @@ function QRModal({ soap, onClose }){
           ))}
           <div className="gen-row" style={{marginTop:14}}>
             <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReferralModal({ convo, memo, authHeaders, copyText, onClose }){
+  const [to, setTo] = useState("");
+  const [letter, setLetter] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const gen = async ()=>{
+    if(!convo.trim()){ setErr("会話が空です。"); return; }
+    setBusy(true); setErr("");
+    try{
+      const res = await fetch("/api/referral", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ conversation: convo, memo, referralTo: to }),
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || `生成に失敗しました（HTTP ${res.status}）`);
+      setLetter(data.letter || "");
+    }catch(e){ setErr(e.message || "生成に失敗しました。"); }
+    finally{ setBusy(false); }
+  };
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal panel" onClick={e=>e.stopPropagation()}>
+        <div className="in-body">
+          <div className="field-label">紹介状（診療情報提供書）の下書き <span className="opt">下書き・要確認</span></div>
+          <input className="ta" style={{width:"100%"}} value={to} onChange={e=>setTo(e.target.value)}
+            placeholder="紹介先（任意）例：〇〇大学病院 口腔外科 御机下"/>
+          {!letter && (
+            <div className="gen-row" style={{marginTop:12}}>
+              <button className="btn btn-primary" onClick={gen} disabled={busy}>{busy?"生成中…":"紹介状を生成"}</button>
+              <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
+            </div>
+          )}
+          {err && <div className="auth-err">{err}</div>}
+          {letter && (
+            <React.Fragment>
+              <textarea className="ta" style={{width:"100%", minHeight:240, marginTop:12}}
+                value={letter} onChange={e=>setLetter(e.target.value)} />
+              <div className="gen-row" style={{marginTop:12}}>
+                <button className="btn btn-emr" onClick={()=>copyText(letter, "紹介状をコピーしました")}>
+                  <Ico.copy stroke="currentColor"/> コピー
+                </button>
+                <button className="btn btn-ghost" onClick={gen} disabled={busy}>{busy?"…":"再生成"}</button>
+                <button className="btn btn-ghost" onClick={onClose}>閉じる</button>
+              </div>
+            </React.Fragment>
+          )}
+          <div className="note" style={{marginTop:10, fontSize:"12px", color:"var(--ink-faint)"}}>
+            ※ 下書きです。歯科医師が内容を確認・修正のうえご利用ください。[ ] は記入欄です。
           </div>
         </div>
       </div>

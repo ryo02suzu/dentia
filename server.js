@@ -323,8 +323,17 @@ const SOAP_TOOL = {
 /* ------------------------------------------------------------------ *
  * 生成エンドポイント
  * ------------------------------------------------------------------ */
+// 出力スタイル（詳細度）の指示。先生ごとの好みに合わせる軽量カスタム。
+function styleNote(detail) {
+  if (detail === "brief")
+    return "\n\n# 出力スタイル\n各項目は要点のみ、最小限の簡潔な記載にする（保険再診向けの短い記録）。冗長な説明は避ける。";
+  if (detail === "detailed")
+    return "\n\n# 出力スタイル\n各項目を丁寧に、所見・経過・根拠・計画を漏れなく詳しく記載する（初診・自費・説明同意向け）。";
+  return "";
+}
+
 app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
-  const { conversation, memo, template } = req.body || {};
+  const { conversation, memo, template, detail } = req.body || {};
 
   if (!conversation || !conversation.trim()) {
     return res.status(400).json({ error: "会話テキストが空です。" });
@@ -354,7 +363,7 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
     const msg = await client.messages.create({
       model: MODEL,
       max_tokens: 1500,
-      system: buildSystemPrompt(template),
+      system: buildSystemPrompt(template) + styleNote(detail),
       tools: [SOAP_TOOL],
       tool_choice: { type: "tool", name: SOAP_TOOL.name },
       messages: [{ role: "user", content: userContent }],
@@ -376,6 +385,61 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
       err.status === 401
         ? "APIキーが無効です。.env の ANTHROPIC_API_KEY を確認してください。"
         : err.message || "生成中にエラーが発生しました。";
+    return res.status(status).json({ error: message });
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * 紹介状（情報提供書）生成エンドポイント
+ *   診療会話から、他院・大学病院・口腔外科等への歯科紹介状の下書きを生成。
+ * ------------------------------------------------------------------ */
+const REFERRAL_SYSTEM = `あなたは日本の歯科診療を支援するAIです。診療の会話から、他の医療機関（大学病院・口腔外科・他科・他院等）への「歯科紹介状（診療情報提供書）」の下書きを作成します。
+
+# 様式（一般的な診療情報提供書に準拠）
+- 宛先（指定があれば「〇〇 御机下」等）／紹介元（[医院名]・[歯科医師名] は記入欄として残す）
+- 傷病名・部位（歯式 #46 等）
+- 紹介目的（精査・加療依頼・対診 等）
+- 既往歴・服薬・アレルギー（会話に出た範囲）
+- 現病歴・現症（主訴、経過、口腔内所見、検査・X線所見）
+- 治療経過・現在の処置内容
+- 依頼事項
+
+# 重要な制約
+- これは歯科医師が確認・修正して確定する前提の「下書き」である。断定を避け、会話に無い情報は創作しない。記入が必要な箇所は [　] で残す。
+- 丁寧な書面の日本語で記載する。本文のみを出力し、前置きや説明は付けない。`;
+
+app.post("/api/referral", authGuard, rateLimit, dailyCap, async (req, res) => {
+  const { conversation, memo, referralTo } = req.body || {};
+  if (!conversation || !conversation.trim()) {
+    return res.status(400).json({ error: "会話テキストが空です。" });
+  }
+  if (conversation.length > MAX_CONVERSATION_CHARS) {
+    return res.status(400).json({ error: `会話が長すぎます（最大 ${MAX_CONVERSATION_CHARS} 文字）。` });
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY が設定されていません。" });
+  }
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const userContent =
+    `# 診療の会話\n${conversation.trim()}\n\n` +
+    (referralTo && referralTo.trim() ? `# 紹介先\n${referralTo.trim()}\n\n` : "") +
+    (memo && memo.trim() ? `# 補足メモ\n${memo.trim()}\n\n` : "") +
+    `上記から、歯科紹介状（診療情報提供書）の下書き本文を作成してください。`;
+  try {
+    const msg = await client.messages.create({
+      model: MODEL,
+      max_tokens: 1500,
+      system: REFERRAL_SYSTEM,
+      messages: [{ role: "user", content: userContent }],
+    });
+    const textBlock = msg.content.find((b) => b.type === "text");
+    const letter = textBlock ? textBlock.text : "";
+    if (!letter) return res.status(502).json({ error: "AIから有効な結果を取得できませんでした。" });
+    return res.json({ letter });
+  } catch (err) {
+    console.error("[referral] error:", err);
+    const status = err.status || 500;
+    const message = err.status === 401 ? "APIキーが無効です。" : err.message || "生成中にエラーが発生しました。";
     return res.status(status).json({ error: message });
   }
 });
