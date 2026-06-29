@@ -127,8 +127,16 @@ function rateLimit(req, res, next) {
 const DAILY_LIMIT = parseInt(process.env.DAILY_API_LIMIT || "200", 10);
 // 1回の生成に渡せる会話の最大文字数（過大なトークン課金を防ぐ）
 const MAX_CONVERSATION_CHARS = parseInt(process.env.MAX_CONVERSATION_CHARS || "16000", 10);
-async function dailyCap(req, res, next) {
-  if (!req.userToken) return next(); // 認証未設定/未ログインはスキップ（authGuardで処理済み）
+// memo / referralTo など補助テキストの上限（会話本文と別枠で課金されるため上限を設ける）
+const MAX_MEMO_CHARS = parseInt(process.env.MAX_MEMO_CHARS || "4000", 10);
+
+// 1日あたりの利用上限をチェックし、当日カウントを+1する。
+// ※ ミドルウェアではなく「入力検証を通過し、実際にAI呼び出しを行う直前」に呼ぶこと。
+//   こうすることで、空入力・長さ超過・APIキー未設定・サイズ超過アップロード等の
+//   “AIを呼ばない”リクエストが上限カウントを消費してしまう不具合を防ぐ。
+// 返り値: { limited:true, error } なら 429 を返して中断、{ limited:false } なら続行。
+async function checkDailyCap(req) {
+  if (!req.userToken) return { limited: false }; // 認証未設定/未ログインはスキップ
   try {
     const base = normalizeSupabaseUrl(process.env.SUPABASE_URL);
     const r = await fetch(`${base}/rest/v1/rpc/bump_api_usage`, {
@@ -143,9 +151,10 @@ async function dailyCap(req, res, next) {
     if (r.ok) {
       const count = await r.json();
       if (typeof count === "number" && count > DAILY_LIMIT) {
-        return res.status(429).json({
+        return {
+          limited: true,
           error: `本日の利用上限（${DAILY_LIMIT}回）に達しました。明日また利用できます。`,
-        });
+        };
       }
     } else {
       // 関数未作成(404)など → 上限を有効化していないとみなしフェイルオープン
@@ -154,7 +163,23 @@ async function dailyCap(req, res, next) {
   } catch (err) {
     console.warn("[dailyCap] error (fail-open):", err.message);
   }
-  next();
+  return { limited: false };
+}
+
+// 文字列項目の検証ヘルパー（型チェック＋長さ上限）。
+// 不正なら { error } を返す。問題なければ { value:(トリム済み文字列) }。
+function checkText(value, { name, max, required }) {
+  if (value == null || value === "") {
+    if (required) return { error: `${name}が空です。` };
+    return { value: "" };
+  }
+  if (typeof value !== "string") {
+    return { error: `${name}の形式が正しくありません。` };
+  }
+  if (value.length > max) {
+    return { error: `${name}が長すぎます（最大 ${max} 文字）。` };
+  }
+  return { value: value.trim() };
 }
 
 /* ------------------------------------------------------------------ *
@@ -284,7 +309,7 @@ ${tmpl.guide}
 
 # 歯周検査の所見（読み上げ→構造化テキスト）
 - 歯周検査の値が会話・読み上げに含まれる場合、歯番ごとに構造化したテキストで整理する（レセコンの歯周モジュールの代替ではなく、所見の下書きとして）。
-- プロービング深さ(PD)は既定で**6点法**（頬側：近心・正中・遠心／舌側：近心・正中・遠心）として、述べられた値を歯番ごとに整理する。
+- プロービング深さ(PD)は既定で**6点法**（頬側：近心・中央・遠心／舌側：近心・中央・遠心）として、述べられた値を歯番ごとに整理する。
   例）#16 PD 頬側3-2-3／舌側2-3-4、BOP(+)：遠心舌側、動揺度1
 - **PCRは%（O'Leary法）** で記載（例：PCR 18%）。BOPも陽性部位数や%が述べられればそのまま記載。
 - 動揺度（0〜3度）、根分岐部病変（Lindheの分類等）が述べられれば歯番ごとに付記する。
@@ -332,17 +357,19 @@ function styleNote(detail) {
   return "";
 }
 
-app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
+app.post("/api/generate", authGuard, rateLimit, async (req, res) => {
   const { conversation, memo, template, detail } = req.body || {};
 
-  if (!conversation || !conversation.trim()) {
-    return res.status(400).json({ error: "会話テキストが空です。" });
-  }
-  if (conversation.length > MAX_CONVERSATION_CHARS) {
-    return res.status(400).json({
-      error: `会話が長すぎます（最大 ${MAX_CONVERSATION_CHARS} 文字）。録音・入力を分割してお試しください。`,
-    });
-  }
+  // ① 入力検証（AIを呼ぶ前に。ここで弾いたものは上限カウントを消費しない）
+  const conv = checkText(conversation, {
+    name: "会話テキスト",
+    max: MAX_CONVERSATION_CHARS,
+    required: true,
+  });
+  if (conv.error) return res.status(400).json({ error: conv.error });
+  const memoChk = checkText(memo, { name: "補足メモ", max: MAX_MEMO_CHARS });
+  if (memoChk.error) return res.status(400).json({ error: memoChk.error });
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({
       error:
@@ -350,12 +377,16 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
     });
   }
 
+  // ② 検証を通過した“実際にAIを呼ぶ”リクエストだけが日次上限を消費する
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const userContent =
-    `# 診療の会話\n${conversation.trim()}\n\n` +
-    (memo && memo.trim()
-      ? `# 補足メモ（既往歴・アレルギー等）\n${memo.trim()}\n\n`
+    `# 診療の会話\n${conv.value}\n\n` +
+    (memoChk.value
+      ? `# 補足メモ（既往歴・アレルギー等）\n${memoChk.value}\n\n`
       : "") +
     `上記の会話から、歯科のSOAPカルテ下書きを作成し、record_dental_soap ツールで記録してください。`;
 
@@ -408,22 +439,30 @@ const REFERRAL_SYSTEM = `あなたは日本の歯科診療を支援するAIで�
 - これは歯科医師が確認・修正して確定する前提の「下書き」である。断定を避け、会話に無い情報は創作しない。記入が必要な箇所は [　] で残す。
 - 丁寧な書面の日本語で記載する。本文のみを出力し、前置きや説明は付けない。`;
 
-app.post("/api/referral", authGuard, rateLimit, dailyCap, async (req, res) => {
+app.post("/api/referral", authGuard, rateLimit, async (req, res) => {
   const { conversation, memo, referralTo } = req.body || {};
-  if (!conversation || !conversation.trim()) {
-    return res.status(400).json({ error: "会話テキストが空です。" });
-  }
-  if (conversation.length > MAX_CONVERSATION_CHARS) {
-    return res.status(400).json({ error: `会話が長すぎます（最大 ${MAX_CONVERSATION_CHARS} 文字）。` });
-  }
+  const conv = checkText(conversation, {
+    name: "会話テキスト",
+    max: MAX_CONVERSATION_CHARS,
+    required: true,
+  });
+  if (conv.error) return res.status(400).json({ error: conv.error });
+  const memoChk = checkText(memo, { name: "補足メモ", max: MAX_MEMO_CHARS });
+  if (memoChk.error) return res.status(400).json({ error: memoChk.error });
+  const toChk = checkText(referralTo, { name: "紹介先", max: MAX_MEMO_CHARS });
+  if (toChk.error) return res.status(400).json({ error: toChk.error });
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: "ANTHROPIC_API_KEY が設定されていません。" });
   }
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const userContent =
-    `# 診療の会話\n${conversation.trim()}\n\n` +
-    (referralTo && referralTo.trim() ? `# 紹介先\n${referralTo.trim()}\n\n` : "") +
-    (memo && memo.trim() ? `# 補足メモ\n${memo.trim()}\n\n` : "") +
+    `# 診療の会話\n${conv.value}\n\n` +
+    (toChk.value ? `# 紹介先\n${toChk.value}\n\n` : "") +
+    (memoChk.value ? `# 補足メモ\n${memoChk.value}\n\n` : "") +
     `上記から、歯科紹介状（診療情報提供書）の下書き本文を作成してください。`;
   try {
     const msg = await client.messages.create({
@@ -463,7 +502,9 @@ const TRANSCRIBE_PROMPT =
     "補綴・外科：FMC、フルジルコニアクラウン、ブリッジ、義歯、支台歯、支台築造、咬合、抜歯、智歯、埋伏歯、嚢胞。",
   ].join("");
 
-app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio"), async (req, res) => {
+app.post("/api/transcribe", authGuard, rateLimit, upload.single("audio"), async (req, res) => {
+  // multer がアップロードを解析した“後”に検証・上限判定する。
+  // サイズ超過(25MB)や音声なしのリクエストは上限カウントを消費しない。
   if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
     return res.status(400).json({ error: "音声データがありません。" });
   }
@@ -473,6 +514,9 @@ app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio
         "OPENAI_API_KEY が設定されていません。.env に OPENAI_API_KEY を設定してください（.env.example を参照）。",
     });
   }
+
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

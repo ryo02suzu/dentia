@@ -481,6 +481,8 @@
     background:#FBFDFD; padding:9px 12px; font-family:inherit; font-size:13.5px; color:var(--ink);}
   .rec-search input{flex:1; min-width:160px;}
   .rec-search input:focus, .rec-search select:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-tint);}
+  .rec-note{font-size:12px; color:var(--ink-faint); background:#FBFDFD; border:1px dashed var(--line);
+    border-radius:8px; padding:7px 10px; margin-bottom:12px;}
 
   /* ── スマホ対応（既存デザイン・配色・フォントはそのまま、狭い画面に収める調整のみ） ── */
   @media (max-width:640px){
@@ -1175,6 +1177,8 @@ function App({ sb=null, session=null, clinicId=null }){
   const chunks = useRef([]);                // 録音データ片
   const streamRef = useRef(null);           // マイクのMediaStream
   const recTimer = useRef(null);            // 経過時間タイマー
+  const toastTimer = useRef(null);          // トースト消去タイマー（アニメ用timersとは分離する）
+  const genTokenRef = useRef(0);            // 生成リクエストの世代ID（古い応答が新しい結果を上書きするのを防ぐ）
 
   useEffect(()=>{
     const th = THEMES[t.theme] || THEMES.clear;
@@ -1191,12 +1195,19 @@ function App({ sb=null, session=null, clinicId=null }){
   const clearTimers = ()=>{ timers.current.forEach(clearTimeout); timers.current=[]; };
   useEffect(()=>()=>{
     clearTimers();
+    if(toastTimer.current) clearTimeout(toastTimer.current);
     if(recTimer.current) clearInterval(recTimer.current);
     if(streamRef.current) streamRef.current.getTracks().forEach(tr=>tr.stop());
   },[]);
   const push = (fn,ms)=>timers.current.push(setTimeout(fn,ms));
 
-  const showToast = (msg)=>{ setToast(msg); push(()=>setToast(null), 2000); };
+  // トーストはアニメ用 timers と別管理にする。clearTimers()（生成・テンプレ切替時）で
+  // 巻き込みキャンセルされ「保存しました」等が消えなくなる不具合を防ぐ。
+  const showToast = (msg)=>{
+    setToast(msg);
+    if(toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(()=>setToast(null), 2000);
+  };
 
   const pickTemplate = (id)=>{
     setTmpl(id);
@@ -1241,11 +1252,24 @@ function App({ sb=null, session=null, clinicId=null }){
     }catch(_){ return {}; }
   };
 
+  // 所属医院IDを確実に取得する。propのclinicIdが（ログイン直後などで）まだ未解決でも、
+  // その場で ensure_clinic を叩いて取得する。これにより clinic_id=null での保存
+  // （医院メンバーと共有されない＝可視性の不整合）を防ぐ。ensure_clinicは冪等で安全。
+  const resolveClinicId = async ()=>{
+    if(clinicId) return clinicId;
+    if(!sb) return null;
+    try{ const { data, error } = await sb.rpc("ensure_clinic"); return (!error && data) ? data : null; }
+    catch(_){ return null; }
+  };
+
   const runGeneration = useCallback(async (overrideConvo)=>{
     // 録音フローからは文字起こしテキストを直接渡す（state更新の反映待ちを避ける）
     const text = (typeof overrideConvo === "string" && overrideConvo.trim()) ? overrideConvo : convo;
     if(!text.trim()) return;
     clearTimers();
+    // この生成の世代ID。連続生成したとき、古い応答が新しい結果を上書きするのを防ぐ。
+    const myToken = ++genTokenRef.current;
+    const stale = ()=> genTokenRef.current !== myToken;
     setInputMode("paste");
     setErrMsg("");
     setPhase("loading"); setGenTime(null);
@@ -1261,6 +1285,7 @@ function App({ sb=null, session=null, clinicId=null }){
         body: JSON.stringify({ conversation: text, memo, template: tmpl, detail }),
       });
       const data = await res.json().catch(()=>({}));
+      if(stale()) return; // すでに新しい生成が走っている → この応答は破棄
       if(res.status===401 && sb){
         sb.auth.signOut().catch(()=>{}); // セッション失効 → ログイン画面へ戻す
         throw new Error("セッションが切れました。お手数ですが再度ログインしてください。");
@@ -1276,17 +1301,22 @@ function App({ sb=null, session=null, clinicId=null }){
 
       // 生成結果をログインユーザー（所属医院）に紐づけて保存。失敗しても生成は妨げない。
       if(sb && session){
-        const payload = {
-          template: tmpl, transcript: text, memo,
-          s: soap[0], o: soap[1], a: soap[2], p: soap[3],
-        };
-        if(clinicId) payload.clinic_id = clinicId; // 医院があれば医院単位で共有（未マイグレーション時は付けない）
-        sb.from("records").insert(payload).select("id").single().then(({data:row,error})=>{
+        (async ()=>{
+          const cid = await resolveClinicId(); // 医院IDを確実に解決してから保存（null共有不整合を防ぐ）
+          if(stale()) return;                  // 保存完了前に新しい生成が始まったら中断
+          const payload = {
+            template: tmpl, transcript: text, memo,
+            s: soap[0], o: soap[1], a: soap[2], p: soap[3],
+          };
+          if(cid) payload.clinic_id = cid; // 医院があれば医院単位で共有（未マイグレーション時は付けない）
+          const { data:row, error } = await sb.from("records").insert(payload).select("id").single();
+          if(stale()) return;                  // 古い保存応答で新しい世代のIDを上書きしない
           if(error){ console.error("save error:", error); showToast("カルテの保存に失敗しました"); }
           else { if(row && row.id) setSavedRecordId(row.id); showToast("カルテを保存しました"); }
-        });
+        })();
       }
     }catch(err){
+      if(stale()) return; // 古い生成のエラーで新しい生成の表示を壊さない
       setPhase("error");
       setErrMsg(err.message || "サーバーに接続できませんでした。サーバーが起動しているか確認してください。");
     }
@@ -1376,13 +1406,23 @@ function App({ sb=null, session=null, clinicId=null }){
   const copyBlock = (i)=> copyText(editedSoap[i]||"", `${BLOCKS[i].key}（${BLOCKS[i].jp}）をコピーしました`);
   const setBlock = (i,v)=> setEditedSoap(prev=>{ const n=[...prev]; n[i]=v; return n; });
 
-  // 編集内容を保存済みカルテに反映（自動保存後に手直しした場合）
-  const updateSavedRecord = ()=>{
-    if(!sb || !savedRecordId){ showToast("先に生成・保存してください"); return; }
-    sb.from("records").update({ s:editedSoap[0], o:editedSoap[1], a:editedSoap[2], p:editedSoap[3] })
-      .eq("id", savedRecordId).then(({error})=>{
-        showToast(error ? "更新に失敗しました" : "編集内容を保存しました");
-      });
+  // 編集内容を保存する。既に自動保存済み(savedRecordId有)なら更新、
+  // まだ無い（自動保存が失敗した／これから保存する）場合は改めてinsertする。
+  // → 自動保存に失敗しても手直し内容を確実に保存できる（データロス防止）。
+  const saveEdits = async ()=>{
+    if(!sb){ showToast("保存にはログインが必要です"); return; }
+    const fields = { s:editedSoap[0], o:editedSoap[1], a:editedSoap[2], p:editedSoap[3] };
+    if(savedRecordId){
+      const { error } = await sb.from("records").update(fields).eq("id", savedRecordId);
+      showToast(error ? "更新に失敗しました" : "編集内容を保存しました");
+    } else {
+      const cid = await resolveClinicId();
+      const payload = { template: tmpl, transcript: convo, memo, ...fields };
+      if(cid) payload.clinic_id = cid;
+      const { data:row, error } = await sb.from("records").insert(payload).select("id").single();
+      if(error){ showToast("保存に失敗しました"); }
+      else { if(row && row.id) setSavedRecordId(row.id); showToast("カルテを保存しました"); }
+    }
   };
 
   const canGen = convo.trim().length>0 && phase!=="loading" && recState!=="recording" && recState!=="transcribing";
@@ -1630,8 +1670,8 @@ function App({ sb=null, session=null, clinicId=null }){
                   <button className="btn btn-ghost" onClick={()=>setShowReferral(true)}>
                     <Ico.doc stroke="currentColor"/> 紹介状
                   </button>
-                  {authEnabled && savedRecordId && (
-                    <button className="btn btn-ghost" onClick={updateSavedRecord}>編集を保存</button>
+                  {authEnabled && session && (
+                    <button className="btn btn-ghost" onClick={saveEdits}>{savedRecordId ? "編集を保存" : "保存"}</button>
                   )}
                 </div>
                 <div className="res-foot">
@@ -1650,7 +1690,7 @@ function App({ sb=null, session=null, clinicId=null }){
       </div>
 
       {authEnabled && showRecords && (
-        <RecordsView sb={sb} onClose={()=>setShowRecords(false)} />
+        <RecordsView sb={sb} session={session} showToast={showToast} onClose={()=>setShowRecords(false)} />
       )}
       {authEnabled && showFeedback && (
         <FeedbackModal sb={sb} showToast={showToast} onClose={()=>setShowFeedback(false)} />
@@ -1793,23 +1833,27 @@ function AuthScreen({ sb, inviteRequired=false }){
   );
 }
 
-function RecordsView({ sb, onClose }){
+function RecordsView({ sb, session, showToast, onClose }){
   const [rows, setRows] = useState(null); // null=loading
   const [err, setErr] = useState("");
   const [sel, setSel] = useState(null);
   const [q, setQ] = useState("");        // 検索ワード
   const [fTmpl, setFTmpl] = useState(""); // テンプレ絞り込み
+  const [capped, setCapped] = useState(false); // 取得件数が上限に達したか
 
+  const FETCH_LIMIT = 1000; // 医院共有では件数が増えるため広めに取得（超過分は要サーバー側検索）
   useEffect(()=>{
     let alive = true;
-    sb.from("records").select("*").order("created_at",{ascending:false}).limit(200)
+    sb.from("records").select("*").order("created_at",{ascending:false}).limit(FETCH_LIMIT)
       .then(({data,error})=>{
         if(!alive) return;
         if(error){ setErr(error.message); setRows([]); }
-        else setRows(data||[]);
+        else { setRows(data||[]); setCapped((data||[]).length >= FETCH_LIMIT); }
       });
     return ()=>{ alive=false; };
   },[sb]);
+
+  const myId = session && session.user && session.user.id;
 
   const fmtDate = (s)=>{
     try{ return new Date(s).toLocaleString("ja-JP",
@@ -1819,8 +1863,11 @@ function RecordsView({ sb, onClose }){
   const tmplLabel = (id)=>{ const m = TEMPLATES.find(x=>x.id===id); return m?m.label:(id||"—"); };
 
   const del = async (id)=>{
+    if(!window.confirm("このカルテを削除します。よろしいですか？\n（削除すると元に戻せません）")) return;
     const { error } = await sb.from("records").delete().eq("id", id);
-    if(!error){ setRows(rs=>(rs||[]).filter(r=>r.id!==id)); setSel(null); }
+    if(error){ showToast && showToast("削除に失敗しました"); return; }
+    setRows(rs=>(rs||[]).filter(r=>r.id!==id)); setSel(null);
+    showToast && showToast("削除しました");
   };
 
   return (
@@ -1860,6 +1907,9 @@ function RecordsView({ sb, onClose }){
                   {TEMPLATES.map(x=><option key={x.id} value={x.id}>{x.label}</option>)}
                 </select>
               </div>
+              {capped && (
+                <div className="rec-note">直近{FETCH_LIMIT}件を表示しています。これより古いカルテは一覧・検索に含まれていません。</div>
+              )}
               {filtered.length===0
                 ? <div className="rec-empty">該当するカルテがありません。</div>
                 : <div className="rec-list">
@@ -1904,7 +1954,9 @@ function RecordsView({ sb, onClose }){
             <div className="res-foot">
               <Ico.check stroke="var(--p-color)"/>
               <span>内容をご確認のうえ、加筆・修正してご利用ください。</span>
-              <button className="btn btn-ghost" style={{marginLeft:"auto"}} onClick={()=>del(sel.id)}>削除</button>
+              {(!sel.user_id || sel.user_id===myId)
+                ? <button className="btn btn-ghost" style={{marginLeft:"auto"}} onClick={()=>del(sel.id)}>削除</button>
+                : <span style={{marginLeft:"auto", color:"var(--ink-faint)", fontSize:"12.5px"}}>他のスタッフが作成したカルテです</span>}
             </div>
           </div>
         )}
