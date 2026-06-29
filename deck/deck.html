@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>dentia 紹介資料</title>
+<style>
+  :root{
+    --primary:#0E9AA7; --primary-dark:#0B7C87; --primary-deep:#0A5E68;
+    --primary-soft:#D4ECEE; --primary-tint:#E8F6F7;
+    --ink:#16323A; --ink-soft:#4A636B; --ink-faint:#8AA0A6; --line:#E2EAEC;
+    --mint:#F1FAFB; --accent:#E8915A; --accent-soft:#FBEADD;
+    --S:#0E9AA7; --O:#3A7FC4; --A:#5E6BC4; --P:#2BA17A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ font-family:"Zen Kaku Gothic New", system-ui, sans-serif; color:var(--ink);
+    font-feature-settings:"palt"; }
+  .latin{ font-family:"Outfit","Zen Kaku Gothic New",sans-serif; }
+  @page{ size:1280px 720px; margin:0; }
+  .slide{
+    position:relative; width:1280px; height:720px; overflow:hidden;
+    background:var(--mint); page-break-after:always; break-after:page;
+  }
+  .slide:last-child{ page-break-after:auto; }
+
+  /* logo */
+  .logo{ position:absolute; left:50%; bottom:26px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:7px; opacity:.9; }
+  .logo .mk{ width:22px; height:22px; border-radius:6px;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    display:flex; align-items:center; justify-content:center; }
+  .logo .wd{ font-family:"Outfit",sans-serif; font-weight:600; font-size:19px; color:var(--primary-deep); letter-spacing:.5px; }
+  .logo .wd b{ color:var(--primary); }
+  .pg{ position:absolute; right:34px; bottom:28px; font-family:"Outfit",sans-serif;
+    font-size:13px; color:var(--ink-faint); }
+
+  /* content header */
+  .head{ position:absolute; top:48px; left:64px; right:64px; }
+  .head h2{ font-size:30px; font-weight:700; color:var(--primary-deep); letter-spacing:.5px; }
+  .head .rule{ height:1px; background:var(--line); margin-top:16px; }
+  .sub{ text-align:center; color:var(--primary-dark); font-weight:700; font-size:21px; margin-top:8px; }
+  .body{ position:absolute; top:132px; left:64px; right:64px; bottom:74px; }
+
+  /* section divider */
+  .divider{ background:linear-gradient(135deg,#15A9B4 0%,#0E9AA7 45%,#0A6B73 100%); }
+  .divider .frame{ position:absolute; inset:40px; border:1.5px solid rgba(255,255,255,.5); border-radius:14px; }
+  .divider .num{ position:absolute; top:298px; left:0; right:0; text-align:center;
+    font-family:"Outfit",sans-serif; font-weight:600; font-size:18px; color:rgba(255,255,255,.85); letter-spacing:2px; }
+  .divider .ttl{ position:absolute; top:330px; left:0; right:0; text-align:center;
+    font-size:34px; font-weight:700; color:#fff; letter-spacing:1px; }
+  .divider .logo .wd{ color:#fff; } .divider .logo .wd b{ color:#EAFBFC; }
+  .divider .logo .mk{ background:rgba(255,255,255,.22); }
+
+  /* cover */
+  .cover{ background:linear-gradient(120deg,#0E9AA7 0%,#0C8D99 50%,#0A6B73 100%); }
+  .cover .left{ position:absolute; left:80px; top:0; bottom:0; width:520px; display:flex; flex-direction:column; justify-content:center; }
+  .cover .brand{ display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+  .cover .brand .mk{ width:54px; height:54px; border-radius:14px; background:rgba(255,255,255,.16);
+    display:flex; align-items:center; justify-content:center; }
+  .cover .brand .wd{ font-family:"Outfit",sans-serif; font-weight:700; font-size:52px; color:#fff; letter-spacing:1px; }
+  .cover .brand .wd b{ color:#CFF3F6; }
+  .cover .tag{ font-size:25px; font-weight:700; color:#Eafdff; line-height:1.5; margin-bottom:18px; }
+  .cover .desc{ font-size:15px; color:rgba(255,255,255,.92); line-height:1.85; }
+  .cover .ver{ position:absolute; left:80px; top:54px; font-family:"Outfit",sans-serif; font-size:14px; color:rgba(255,255,255,.8); letter-spacing:1px; }
+  .cover .beta{ display:inline-block; margin-left:10px; padding:2px 9px; border-radius:20px;
+    background:rgba(255,255,255,.2); font-family:"Outfit",sans-serif; font-size:12px; font-weight:600; vertical-align:middle; }
+  .cover .shotwrap{ position:absolute; right:-30px; top:120px; }
+  .browser{ width:760px; border-radius:12px 12px 10px 10px; overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.32); background:#fff; }
+  .browser .bar{ height:30px; background:#E8EEF0; display:flex; align-items:center; gap:7px; padding:0 13px; }
+  .browser .bar i{ width:11px; height:11px; border-radius:50%; background:#CBD5D8; display:inline-block; }
+  .browser img{ display:block; width:100%; }
+  .phone{ position:absolute; right:30px; top:300px; width:172px; border-radius:24px;
+    border:7px solid #1b1b1b; overflow:hidden; box-shadow:0 24px 50px rgba(0,0,0,.4); background:#000; }
+  .phone img{ display:block; width:100%; }
+
+  /* generic helpers */
+  .center{ display:flex; align-items:center; justify-content:center; flex-direction:column; height:100%; }
+  .concept-k{ font-family:"Outfit",sans-serif; letter-spacing:3px; color:var(--primary); font-weight:600; font-size:18px; margin-bottom:18px; }
+  .concept-t{ font-size:40px; font-weight:700; color:var(--primary-deep); line-height:1.45; text-align:center; }
+
+  .painbox{ background:#fff; border:1.5px solid var(--line); border-radius:18px; padding:42px 56px;
+    box-shadow:0 10px 30px rgba(10,94,104,.06); }
+  .painbox li{ list-style:none; font-size:19px; color:var(--ink); padding:13px 0 13px 38px; position:relative; }
+  .painbox li::before{ content:""; position:absolute; left:6px; top:19px; width:11px; height:11px; border-radius:50%;
+    background:var(--primary); }
+  .painbox li b{ color:var(--primary-dark); }
+
+  .cards{ display:grid; gap:20px; height:100%; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    box-shadow:0 8px 24px rgba(10,94,104,.06); display:flex; flex-direction:column; }
+  .card .ch{ background:var(--primary); color:#fff; font-weight:700; font-size:18px; text-align:center; padding:13px; }
+  .card .cb{ padding:20px 22px; color:var(--ink-soft); font-size:14.5px; line-height:1.8; flex:1;
+    display:flex; flex-direction:column; justify-content:center; }
+  .card .num{ font-family:"Outfit",sans-serif; font-weight:700; font-size:46px; color:var(--primary); }
+  .card .big{ font-family:"Outfit",sans-serif; font-weight:700; font-size:42px; color:var(--accent); }
+  .card h4{ font-size:17px; color:var(--ink); margin-bottom:8px; }
+
+  .flow{ display:grid; gap:0; align-items:center; height:100%; }
+  .fbox{ border-radius:12px; padding:20px 18px; text-align:center; font-weight:600; font-size:16px; color:#fff;
+    background:var(--primary); display:flex; align-items:center; justify-content:center; min-height:74px; }
+  .fbox.soft{ background:#3FB3BD; } .fbox.lite{ background:#7FCBD2; color:var(--primary-deep); }
+  .fbox.out{ background:var(--accent); }
+  .arrow{ text-align:center; color:var(--primary); font-size:26px; }
+  .flow-legend{ position:absolute; left:64px; right:64px; bottom:54px; display:flex; justify-content:space-between;
+    font-size:12px; color:var(--ink-faint); border-top:1px dotted var(--line); padding-top:8px; }
+
+  .pillrow{ display:flex; gap:10px; flex-wrap:wrap; }
+  .pill{ background:var(--primary-tint); color:var(--primary-dark); border:1px solid var(--primary-soft);
+    border-radius:20px; padding:6px 14px; font-size:13.5px; font-weight:600; }
+
+  table.t{ width:100%; border-collapse:separate; border-spacing:0; font-size:15px; }
+  table.t th,table.t td{ padding:13px 16px; border-bottom:1px solid var(--line); text-align:center; }
+  table.t thead th{ background:var(--primary); color:#fff; font-weight:700; }
+  table.t thead th:first-child{ background:transparent; color:var(--ink-soft); font-weight:700; text-align:left; }
+  table.t td.row{ background:var(--primary-tint); color:var(--primary-deep); font-weight:700; text-align:left; }
+  table.t .hl{ background:var(--primary-tint); font-weight:700; color:var(--primary-deep); }
+  table.t tr td{ background:#fff; }
+  .note{ font-size:11.5px; color:var(--ink-faint); margin-top:10px; }
+
+  .three{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; height:100%; }
+  .feat{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px; box-shadow:0 8px 24px rgba(10,94,104,.06); }
+  .feat .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:30px; color:var(--primary); }
+  .feat h4{ font-size:17px; margin:6px 0 10px; }
+  .feat p{ font-size:13.5px; color:var(--ink-soft); line-height:1.75; }
+
+  .shot{ border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 12px 30px rgba(10,94,104,.12); background:#fff; }
+  .shot img{ display:block; width:100%; }
+  .browser2{ border-radius:10px; overflow:hidden; box-shadow:0 14px 34px rgba(10,94,104,.14); background:#fff; border:1px solid var(--line); }
+  .browser2 .bar{ height:26px; background:#EAF0F1; display:flex; align-items:center; gap:6px; padding:0 12px; }
+  .browser2 .bar i{ width:9px; height:9px; border-radius:50%; background:#CBD5D8; }
+  .browser2 img{ display:block; width:100%; }
+
+  .step{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; height:100%; }
+  .stepc{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 8px 22px rgba(10,94,104,.06);
+    display:flex; flex-direction:column; }
+  .stepc .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:34px; color:var(--primary); line-height:1; }
+  .stepc h4{ font-size:15.5px; margin:8px 0 8px; }
+  .stepc p{ font-size:12.5px; color:var(--ink-soft); line-height:1.7; }
+  .stepc .thumb{ margin-top:auto; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+  .stepc .thumb img{ display:block; width:100%; }
+
+  .soapmini{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .smb{ background:#fff; border:1px solid var(--line); border-left:5px solid var(--c); border-radius:10px; padding:12px 16px; }
+  .smb .k{ font-family:"Outfit",sans-serif; font-weight:700; color:var(--c); font-size:13px; }
+  .smb .jp{ font-size:12.5px; color:var(--ink-faint); margin-bottom:6px; }
+  .smb .tx{ font-size:12.5px; color:var(--ink); line-height:1.7; white-space:pre-line; }
+
+  .kv{ width:100%; border-collapse:separate; border-spacing:0 0; font-size:15px; }
+  .kv td{ padding:14px 18px; border-bottom:1px solid var(--line); }
+  .kv td.k{ background:var(--primary-tint); color:var(--primary-deep); font-weight:700; width:200px; }
+
+  .faq .q{ background:var(--primary); color:#fff; font-weight:700; padding:12px 18px; border-radius:8px 8px 0 0; font-size:15px; }
+  .faq .a{ background:#fff; border:1px solid var(--line); border-top:none; padding:12px 18px; border-radius:0 0 8px 8px;
+    font-size:14px; color:var(--ink-soft); line-height:1.7; margin-bottom:14px; }
+
+  .twocol{ display:grid; grid-template-columns:1fr 1fr; gap:30px; height:100%; align-items:center; }
+  .lead{ font-size:16px; color:var(--ink-soft); line-height:1.9; }
+  .lead b{ color:var(--primary-dark); }
+  .tagchip{ display:inline-block; background:var(--accent-soft); color:#B86A36; border:1px solid #F0CBAE;
+    border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; }
+
+  .cta{ background:linear-gradient(120deg,#0E9AA7,#0A6B73); border-radius:18px; padding:40px; color:#fff; text-align:center; }
+  .cta h3{ font-size:28px; margin-bottom:14px; }
+  .cta p{ font-size:16px; line-height:1.9; color:rgba(255,255,255,.95); }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. COVER ============ -->
+<section class="slide cover">
+  <div class="ver">2026.06 Ver<span class="beta latin">BETA</span></div>
+  <div class="left">
+    <div class="brand"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+    <div class="tag">歯科診療の会話から、<br/>歯科SOAPカルテの下書きを自動生成。</div>
+    <div class="desc">歯科医院での医療従事者と患者さんの会話を、AIが文字起こし・要約し、<br/>歯式・歯周検査・処置内容まで反映した SOAP 形式のカルテ下書きを作成する、<br/><b style="color:#fff">歯科専用</b>のAIカルテ作成支援サービスです。</div>
+  </div>
+  <div class="shotwrap">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/03-result.png" alt=""/></div>
+  </div>
+  <div class="phone"><img src="assets/08-mobile-result.png" alt=""/></div>
+</section>
+
+<!-- ============ 2. TOC ============ -->
+<section class="slide">
+  <div class="head"><h2>目次</h2><div class="rule"></div></div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1fr; gap:14px 60px; align-content:center; font-size:20px;">
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">01</span> dentia とは</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">06</span> ご利用の流れ・料金</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">02</span> 歯科に特化した設計</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">07</span> セキュリティとデータの扱い</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">03</span> dentia の使い方</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">08</span> よくあるご質問</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">04</span> 生成の例</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">09</span> 提供主体・お問い合わせ</div>
+    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">05</span> 他サービス・クラークとの比較</div>
+    <div></div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 01 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">01</div><div class="ttl">dentia とは</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- CONCEPT -->
+<section class="slide">
+  <div class="head"><h2>dentia とは</h2><div class="rule"></div></div>
+  <div class="body center">
+    <div class="concept-k latin">CONCEPT</div>
+    <div class="concept-t">歯科医師が、目の前の患者さんに<br/>集中できる時間を取り戻す。</div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- PAINS -->
+<section class="slide">
+  <div class="head" style="text-align:center"><h2 style="font-size:28px">こんなお悩みはありませんか？</h2></div>
+  <div class="body center">
+    <div class="painbox">
+      <ul>
+        <li>全顎の所見や<b>歯式（#46 など）の入力</b>に時間がかかる</li>
+        <li>診療をしながら電子カルテ・レセコンに入力するのが大変</li>
+        <li><b>自費カウンセリング</b>の説明内容を、後から正確に記録できない</li>
+        <li>SPT・<b>歯周精密検査（6点法・PCR）</b>の記録が煩雑</li>
+        <li>診療後にカルテを書くための残業が発生している</li>
+        <li>歯科衛生士の記録（SOAPIE）を院内で標準化したい</li>
+      </ul>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- 3 AIMS (honest, no fabricated stats) -->
+<section class="slide">
+  <div class="head"><h2>dentia が目指す 3 つのねらい</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="cards" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="card"><div class="ch">入力時間の削減</div><div class="cb">
+        会話から SOAP 下書きを自動生成。歯式・所見の<b>手入力を最小化</b>し、
+        診療中・診療後のカルテ作業を軽くすることを目指します。</div></div>
+      <div class="card"><div class="ch">診療への集中</div><div class="cb">
+        「ながら入力」を減らし、<b>患者さんと向き合う時間</b>を確保。
+        会話そのものが記録の素材になります。</div></div>
+      <div class="card"><div class="ch">記録の質の標準化</div><div class="cb">
+        歯科に最適化したテンプレートで、書き手による<b>ばらつきを抑えた</b>
+        SOAP 下書きを生成します。</div></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:64px; right:64px; bottom:54px; font-size:12px; color:var(--ink-faint); text-align:center;">
+    ※ 数値的な効果（削減時間など）は、クローズドβでの実地検証で測定していきます。本資料では誇張した実績値は記載していません。</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- IMPACT diagram (clinical) -->
+<section class="slide">
+  <div class="head"><h2>導入で見込めるインパクト（診療の観点）</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="flow" style="grid-template-columns:1.1fr 0.3fr 1fr 0.3fr 1.1fr; row-gap:26px;">
+      <div class="fbox">ながら入力が<br/>なくなる</div><div class="arrow">→</div>
+      <div></div><div></div>
+      <div class="fbox out">患者満足度の<br/>向上（見込み）</div>
+
+      <div class="fbox soft">診察中の<br/>入力時間を削減</div><div class="arrow">→</div>
+      <div class="fbox lite">待ち時間の<br/>短縮</div><div class="arrow">→</div>
+      <div></div>
+
+      <div class="fbox soft">診察後の<br/>入力時間を削減</div><div class="arrow">→</div>
+      <div class="fbox lite">残業時間の<br/>減少</div><div class="arrow">→</div>
+      <div class="fbox out">負担感の<br/>軽減（見込み）</div>
+    </div>
+  </div>
+  <div class="flow-legend"><span>直接的な効果</span><span>アウトカム（β検証で確認）</span></div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- IMPACT diagram (management) -->
+<section class="slide">
+  <div class="head"><h2>導入で見込めるインパクト（経営の観点）</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="flow" style="grid-template-columns:1fr 0.3fr 1fr 0.3fr 1fr; row-gap:26px;">
+      <div class="fbox soft">診察の合間の<br/>入力時間削減</div><div class="arrow">→</div>
+      <div class="fbox soft">診療の回転が<br/>スムーズに</div><div class="arrow">→</div>
+      <div class="fbox out">機会損失の<br/>低減</div>
+      <div class="fbox soft">診察後の<br/>入力時間削減</div><div class="arrow">→</div>
+      <div class="fbox soft">残業時間の減少</div><div class="arrow">→</div>
+      <div class="fbox out">残業コストの<br/>削減</div>
+      <div class="fbox soft">記録の標準化</div><div class="arrow">→</div>
+      <div class="fbox soft">引き継ぎが容易に</div><div class="arrow">→</div>
+      <div class="fbox out">教育・引継ぎ<br/>コストの低減</div>
+    </div>
+  </div>
+  <div class="flow-legend"><span>直接的な効果</span><span>アウトカム（β検証で確認）</span></div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 02 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">02</div><div class="ttl">歯科に特化した設計</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Why dental-specific -->
+<section class="slide">
+  <div class="head"><h2>なぜ「歯科版」が必要か</h2><div class="rule"></div></div>
+  <div class="body twocol">
+    <div>
+      <div class="lead">
+        医科の初診は「主訴の一本道」。一方、歯科の初診は<br/>
+        <b>全顎のベースライン記録</b>です。う蝕（C0〜C4）・欠損・補綴物、
+        歯周基本検査、咬合、エックス線…と、<b>歯式単位</b>で
+        記録すべき情報が一気に増えます。<br/><br/>
+        汎用の音声カルテでは、この歯科ならではの粒度を
+        うまく構造化できません。dentia は、歯科の語彙と
+        記録様式に最適化することで、<b>そのまま使える下書き</b>を目指します。
+      </div>
+    </div>
+    <div class="cards" style="grid-template-columns:1fr; gap:14px;">
+      <div class="card"><div class="cb"><h4>① 歯科の語彙に対応</h4>
+        C0〜C4／EPT／SRP／RCF／BOP／PCR／SPT／歯式 など、歯科特有の用語の文字起こし・整理に対応。</div></div>
+      <div class="card"><div class="cb"><h4>② 全顎ベースラインを構造化</h4>
+        主訴歯だけでなく、全顎のう蝕・欠損・補綴・歯周を歯番ごとに整理。</div></div>
+      <div class="card"><div class="cb"><h4>③ 創作しない</h4>
+        会話・読み上げに無い所見は補わず「未実施／要確認」に。歯式・左右の取り違えを防ぐ設計。</div></div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- 3 pillars of dental depth + perio screenshot -->
+<section class="slide">
+  <div class="head"><h2>歯科ならではの深掘り（3 本柱）</h2><div class="rule"></div></div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1.05fr; gap:30px; align-items:center;">
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="card"><div class="cb"><h4>歯式単位の構造化</h4>
+        所見を <b>「#46：所見」</b> の形式で歯番ごとに整理。欄ごとの転記に強い。</div></div>
+      <div class="card"><div class="cb"><h4>歯周検査の構造化（6点法・PCR%）</h4>
+        読み上げから、歯番ごとに <b>6点法 PD・BOP・動揺度・PCR%</b> を構造化テキストで出力。</div></div>
+      <div class="card"><div class="cb"><h4>12 の場面別・役割別テンプレ</h4>
+        初診／再診／SPT／補綴／根管／自費カウンセリング／訪問／歯周精密／抜歯外科／小児／矯正／衛生士(SOAPIE)。</div></div>
+    </div>
+    <div class="browser2"><div class="bar"><i></i><i></i><i></i></div><img src="assets/10-result-crop.png" alt=""/></div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Beta positioning (honest) -->
+<section class="slide">
+  <div class="head"><h2>本サービスの位置づけ（β版）</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="cards" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="card"><div class="ch">動く MVP</div><div class="cb">
+        録音 → 文字起こし → 歯科SOAP生成 → ログイン → 医院単位の保存まで、
+        <b>実際に動作する</b>状態です。</div></div>
+      <div class="card"><div class="ch">下書き支援に限定</div><div class="cb">
+        生成物は<b>下書き</b>です。確定・署名は歯科医師がレセコン／電子カルテ側で行う前提。
+        診断の自動提示は行いません。</div></div>
+      <div class="card"><div class="ch">一緒に育てる 1 院を募集</div><div class="cb">
+        同意の取れた医院での<b>クローズドβ</b>から開始し、現場の声で
+        改良していきます。</div></div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 03 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">03</div><div class="ttl">dentia の使い方</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- 4 steps with real screenshots -->
+<section class="slide">
+  <div class="head"><h2>dentia の使い方（4 ステップ）</h2><div class="rule"></div></div>
+  <div class="sub" style="position:absolute; top:96px; left:0; right:0; font-size:16px;">会話から、歯科SOAPカルテの下書きを作成</div>
+  <div class="body" style="top:150px;">
+    <div class="step">
+      <div class="stepc"><div class="n latin">01</div><h4>録音 / 貼り付け</h4><p>診療中の会話を録音、または会話テキストを貼り付け。</p>
+        <div class="thumb"><img src="assets/01-record.png" style="object-fit:cover; object-position:top; height:168px;"/></div></div>
+      <div class="stepc"><div class="n latin">02</div><h4>文字起こし</h4><p>歯科語彙に最適化したAIが日本語で文字起こし。</p>
+        <div class="thumb"><img src="assets/02-input.png" style="object-fit:cover; object-position:top left; height:168px;"/></div></div>
+      <div class="stepc"><div class="n latin">03</div><h4>SOAP を自動生成</h4><p>場面別テンプレで S/O/A/P を構造化して出力。</p>
+        <div class="thumb"><img src="assets/10-result-crop.png" style="object-fit:cover; object-position:top; height:168px;"/></div></div>
+      <div class="stepc"><div class="n latin">04</div><h4>コピー / QR 転記</h4><p>項目別コピー・QRコードでレセコンへ転記。</p>
+        <div class="thumb"><img src="assets/04-qr.png" style="object-fit:cover; object-position:center; height:168px;"/></div></div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- 4 features -->
+<section class="slide">
+  <div class="head"><h2>dentia の 4 つの特徴</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="step">
+      <div class="stepc"><div class="n latin">01</div><h4>歯科語彙の文字起こし補正</h4>
+        <p>C0〜C4／EPT／SRP／RCF／BOP／歯式 等の歯科用語の認識をAIにバイアス。誤変換を抑制します。</p></div>
+      <div class="stepc"><div class="n latin">02</div><h4>場面別・役割別テンプレ</h4>
+        <p>12種の処置・場面に最適化。初診の全顎ベースラインから衛生士のSOAPIEまで。出力スタイルも簡潔／標準／詳細で切替。</p></div>
+      <div class="stepc"><div class="n latin">03</div><h4>歯式・歯周の構造化</h4>
+        <p>「#46：所見」、歯周は6点法・PCR%で構造化。レセコンの欄ごと貼り付けに強い形に。</p></div>
+      <div class="stepc"><div class="n latin">04</div><h4>編集・項目別コピー・QR/紹介状</h4>
+        <p>S/O/A/Pをその場で編集、項目別コピー、QR転記、紹介状（情報提供書）の下書き生成にも対応。</p></div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 04 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">04</div><div class="ttl">生成の例</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Example 1: 初診 (full screenshot) -->
+<section class="slide">
+  <div class="head"><h2>生成の例 ①　初診（会話 → 歯科SOAP）</h2><div class="rule"></div></div>
+  <div class="body" style="top:120px; bottom:70px;">
+    <div class="browser2" style="height:100%; display:flex; flex-direction:column;">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <img src="assets/03-result.png" style="flex:1; object-fit:cover; object-position:top;"/>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Example 2: 歯周精密 (perio) -->
+<section class="slide">
+  <div class="head"><h2>生成の例 ②　歯周精密検査（6点法・PCR%）</h2><div class="rule"></div></div>
+  <div class="body" style="top:120px; bottom:70px;">
+    <div class="browser2" style="height:100%; display:flex; flex-direction:column;">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <img src="assets/09-perio.png" style="flex:1; object-fit:cover; object-position:top;"/>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- QR + referral + mobile -->
+<section class="slide">
+  <div class="head"><h2>転記・紹介状・スマホ対応</h2><div class="rule"></div></div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1fr 0.7fr; gap:22px; align-items:center;">
+    <div>
+      <div class="shot"><img src="assets/04-qr.png" style="height:230px; object-fit:cover; object-position:center;"/></div>
+      <div style="text-align:center; margin-top:10px; font-weight:700; color:var(--primary-dark);">QRで転記（ネット非経由）</div>
+      <div style="text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:4px;">端末のバーコードリーダーで読取り、入力欄へ転記</div>
+    </div>
+    <div>
+      <div class="shot"><img src="assets/05-referral.png" style="height:230px; object-fit:cover; object-position:center;"/></div>
+      <div style="text-align:center; margin-top:10px; font-weight:700; color:var(--primary-dark);">紹介状の下書き生成</div>
+      <div style="text-align:center; font-size:12.5px; color:var(--ink-soft); margin-top:4px;">会話から診療情報提供書の下書きを作成</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="phone" style="position:static; margin:0 auto; width:150px; border-width:6px;"><img src="assets/08-mobile-result.png"/></div>
+      <div style="margin-top:12px; font-weight:700; color:var(--primary-dark);">スマホでも</div>
+      <div style="font-size:12.5px; color:var(--ink-soft); margin-top:4px;">iPhoneのブラウザで利用可能</div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 05 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">05</div><div class="ttl">他サービス・クラークとの比較</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Compare with generic tools -->
+<section class="slide">
+  <div class="head"><h2>汎用の音声カルテツールとの違い</h2><div class="rule"></div></div>
+  <div class="body" style="top:124px;">
+    <table class="t">
+      <thead><tr><th></th><th>dentia（歯科特化）</th><th>汎用の音声カルテ</th></tr></thead>
+      <tbody>
+        <tr><td class="row">歯科用語の整理</td><td class="hl">歯科に最適化</td><td>一般用語が中心</td></tr>
+        <tr><td class="row">歯式単位の構造化</td><td class="hl">あり（#46：所見）</td><td>基本なし</td></tr>
+        <tr><td class="row">歯周6点法・PCR%</td><td class="hl">構造化テキスト出力</td><td>基本なし</td></tr>
+        <tr><td class="row">場面別テンプレ</td><td class="hl">歯科12場面</td><td>汎用テンプレ</td></tr>
+        <tr><td class="row">転記方法</td><td class="hl">項目別コピー＋QR</td><td>コピー／連携</td></tr>
+        <tr><td class="row">提供状況</td><td class="hl">クローズドβ</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="note">※ 一般的な汎用ツールとの比較イメージであり、特定他社を評価・保証するものではありません。</div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Compare with clerk -->
+<section class="slide">
+  <div class="head"><h2>医療クラークを採用する場合との比較</h2><div class="rule"></div></div>
+  <div class="body" style="top:124px;">
+    <table class="t">
+      <thead><tr><th>常勤医師1名のイメージ</th><th>dentia</th><th>医療クラーク（人）</th></tr></thead>
+      <tbody>
+        <tr><td class="row">立ち上げ期間</td><td class="hl">短い（アカウント発行）</td><td>採用・教育に数ヶ月</td></tr>
+        <tr><td class="row">教育コスト</td><td class="hl">基本なし</td><td>教育期間中の人件費</td></tr>
+        <tr><td class="row">稼働の安定</td><td class="hl">時間外メンテのみ</td><td>休暇・急な休み・退職</td></tr>
+        <tr><td class="row">記録の均一性</td><td class="hl">テンプレで一定</td><td>人による差</td></tr>
+        <tr><td class="row">対人業務（受付等）</td><td>×（記録支援に特化）</td><td>○</td></tr>
+      </tbody>
+    </table>
+    <div class="note">※ 役割が異なるため一律比較はできません。dentia は「記録作成の支援」に特化しています。</div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 06 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">06</div><div class="ttl">ご利用の流れ・料金</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Onboarding flow -->
+<section class="slide">
+  <div class="head"><h2>ご利用までの流れ（クローズドβ）</h2><div class="rule"></div></div>
+  <div class="body" style="top:140px;">
+    <div class="cards" style="grid-template-columns:repeat(5,1fr); gap:14px;">
+      <div class="card"><div class="ch" style="font-size:15px">① オンライン説明</div><div class="cb" style="font-size:13px">製品デモ／β覚書の確認</div></div>
+      <div class="card"><div class="ch" style="font-size:15px">② 同意・院内掲示</div><div class="cb" style="font-size:13px">患者同意・院内掲示の準備</div></div>
+      <div class="card"><div class="ch" style="font-size:15px">③ アカウント発行</div><div class="cb" style="font-size:13px">招待コードで医院アカウント作成</div></div>
+      <div class="card"><div class="ch" style="font-size:15px">④ 初期設定</div><div class="cb" style="font-size:13px">テンプレ・運用の確認</div></div>
+      <div class="card"><div class="ch" style="font-size:15px">⑤ 検証・改善</div><div class="cb" style="font-size:13px">使用感のヒアリングと改良</div></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:64px; right:64px; bottom:52px; font-size:12px; color:var(--ink-faint);">
+    ※ サポートは原則オンライン／メールにて対応します。</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Pricing (honest, placeholder) -->
+<section class="slide">
+  <div class="head"><h2>料金について　<span class="tagchip">β：無償提供</span></h2><div class="rule"></div></div>
+  <div class="body" style="top:130px;">
+    <div class="lead" style="margin-bottom:22px;">
+      クローズドβ期間は<b>無償</b>でご提供し、現場での有用性を一緒に検証させてください。<br/>
+      正式版の料金は、検証結果をふまえて決定します（下記は<b>イメージ</b>であり確定ではありません）。
+    </div>
+    <table class="t">
+      <thead><tr><th>プラン（将来イメージ・仮）</th><th>月額</th><th>録音・生成</th></tr></thead>
+      <tbody>
+        <tr><td class="row">β（クローズド）</td><td class="hl">無償</td><td>利用上限の範囲内</td></tr>
+        <tr><td class="row">スモール（将来・仮）</td><td>未定</td><td>—</td></tr>
+        <tr><td class="row">スタンダード（将来・仮）</td><td>未定</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="note">※ 料金は未確定です。確定した金額・条件は別途ご案内します。</div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 07 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">07</div><div class="ttl">セキュリティとデータの扱い</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Security (honest) -->
+<section class="slide">
+  <div class="head"><h2>セキュリティとデータの取り扱い</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="cards" style="grid-template-columns:1fr 1fr 1fr; gap:18px;">
+      <div class="card"><div class="cb"><h4>音声は保存しない</h4>文字起こしに使った音声データはサーバーに保存せず、処理後に破棄します。</div></div>
+      <div class="card"><div class="cb"><h4>医院単位のデータ分離</h4>Supabase の Row Level Security（RLS）で、医院ごとに read/write を制限。</div></div>
+      <div class="card"><div class="cb"><h4>アクセス制御・利用上限</h4>API 認証（JWT）・レート制限・1日あたりの利用上限で不正・暴走を抑止。</div></div>
+      <div class="card"><div class="cb"><h4>越境移転の整理</h4>文字起こし／生成は米国の API を利用。<b>学習に使わない設定</b>・DPA 等で整理（プラポリに明記）。</div></div>
+      <div class="card"><div class="cb"><h4>同意の設計</h4>医院＝管理者、dentia＝委託先。患者同意は<b>院内掲示・問診票</b>で医院が取得する設計。</div></div>
+      <div class="card"><div class="cb"><h4>今後の強化（β→正式）</h4>送信前マスキング・監査ログ・3省2ガイドライン準拠を順次整備。</div></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:64px; right:64px; bottom:52px; font-size:11.5px; color:var(--ink-faint); text-align:center;">
+    ※ 法務・コンプライアンスは専門家レビューを前提に整備中です。本ページは現時点の方針であり、最終的な取扱いは規約・プライバシーポリシーが優先します。</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 08 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">08</div><div class="ttl">よくあるご質問</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- FAQ -->
+<section class="slide">
+  <div class="head"><h2>よくあるご質問</h2><div class="rule"></div></div>
+  <div class="body" style="top:120px;">
+    <div class="faq">
+      <div class="q">Q1. iPhone で利用できますか？</div>
+      <div class="a">A1. はい。スマートフォンのブラウザからご利用いただけます。</div>
+      <div class="q">Q2. 電子カルテ・レセコンと連携できますか？</div>
+      <div class="a">A2. 現状は<b>項目別コピー／QR転記</b>での貼り付けに対応しています。API 直結はレセコン各社との連携が前提となるため、将来の対応課題です。</div>
+      <div class="q">Q3. 診断や治療方針を自動で提示しますか？</div>
+      <div class="a">A3. いいえ。dentia は<b>記録作成の支援</b>に限定し、会話に無い診断名は補いません（医療機器に該当しない想定。専門家確認のうえ整理しています）。</div>
+      <div class="q">Q4. 歯科の専門用語・固有名詞を追加できますか？</div>
+      <div class="a">A4. 文字起こしの語彙ヒントの調整に対応しています。医院ごとの用語カスタムは今後の拡張予定です。</div>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- ============ DIVIDER 09 ============ -->
+<section class="slide divider"><div class="frame"></div>
+  <div class="num latin">09</div><div class="ttl">提供主体・お問い合わせ</div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Company / contact (honest placeholders) -->
+<section class="slide">
+  <div class="head"><h2>提供主体・お問い合わせ</h2><div class="rule"></div></div>
+  <div class="body" style="top:128px;">
+    <table class="kv">
+      <tr><td class="k">サービス名</td><td>dentia（歯科専用 AIカルテ作成支援）</td></tr>
+      <tr><td class="k">提供主体</td><td>［　記入　］（現在は個人開発・歯科学生による開発）</td></tr>
+      <tr><td class="k">位置づけ</td><td>クローズドβ（同意の取れた医院での実地検証）</td></tr>
+      <tr><td class="k">技術構成</td><td>文字起こし・要約に外部AI（API利用）／認証・保存に Supabase（医院単位 RLS）</td></tr>
+      <tr><td class="k">お問い合わせ</td><td>［　メール / 連絡先を記入　］</td></tr>
+    </table>
+    <div class="note">※ 法人化・契約主体・連絡先は確定後に記載します。本資料の空欄［　］はご提供前に確定させます。</div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+<!-- Closing CTA -->
+<section class="slide" style="background:var(--mint);">
+  <div class="body center">
+    <div class="cta" style="width:760px;">
+      <h3>「歯科版の相棒」を、一緒に育てませんか。</h3>
+      <p>クローズドβにご協力いただける歯科医院を募集しています。<br/>
+        現場の声をもとに、歯科に本当に役立つカルテ作成支援へ磨き込みます。</p>
+    </div>
+  </div>
+  <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
+</section>
+
+</body>
+</html>
