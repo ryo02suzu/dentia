@@ -16,12 +16,35 @@ dentia 側は `STT_PROVIDER=selfhost` とし、`SELFHOST_STT_URL` をこのサ�
 
 | 変数 | 既定 | 説明 |
 |---|---|---|
-| `WHISPER_MODEL` | `large-v3` | モデル名。軽量化は `kotoba-tech/kotoba-whisper-v2.0-faster` 等も可 |
+| `WHISPER_MODEL` | `large-v3` | モデル名。**臨床精度は large-v3 以上を推奨**。日本語特化は `kotoba-tech/kotoba-whisper-v2.0-faster`、軽量は `small` |
 | `COMPUTE_TYPE` | `int8` | 量子化。GPUなら `int8_float16` / `float16` |
 | `DEVICE` | `cuda` | `cuda`。CUDA不在時は自動で `cpu` にフォールバック |
 | `BEAM_SIZE` | `5` | ビームサイズ |
+| `INITIAL_PROMPT` | （歯科の既定） | 直前文脈による歯科語彙バイアス。未設定なら歯式・処置名・症状を厚めにした既定値 |
+| `CONDITION_PREV` | `false` | 直前テキストへの依存。`false` で無関係文への引きずり・暴走を抑制 |
+| `TEMPERATURE` | `0.0` | デコード温度。`0` で決定的（再現性・安定） |
+| `VAD_FILTER` | `true` | 無音区間除去（幻聴抑制） |
+| `NO_SPEECH_THRESHOLD` / `LOGPROB_THRESHOLD` / `COMPRESSION_RATIO_THRESHOLD` | `0.6` / `-1.0` / `2.4` | 幻聴・創作の抑制閾値 |
 | `SELFHOST_STT_TOKEN` | （無） | 設定時は `Authorization: Bearer` の一致を要求（dentia 側と共有） |
 | `HOST` / `PORT` | `0.0.0.0` / `8000` | バインド先 |
+
+### 推奨（臨床寄り）設定とチューニング実績
+
+```bash
+WHISPER_MODEL=large-v3 COMPUTE_TYPE=int8 CONDITION_PREV=false TEMPERATURE=0 \
+  python server.py
+```
+
+`measure/`（合成音声の計測ハーネス）で測った効果（CPU・int8・歯科8文）:
+
+| 指標 | `small`（既定設定） | `large-v3` + 上記チューニング |
+|---|---|---|
+| CER（文字誤り率） | 11.4% | **1.6%** |
+| WER（語誤り率） | 60.0% | **20.0%** |
+| 歯科用語 F1 | 100% | 100% |
+
+> これは合成音声での“当て木”です。`#46` 等の歯式・材料名・術式略語のストレスは弱く、
+> **臨床到達には実音声での評価と fine-tuning が必要**です（`measure/README.md`・設計書 §5,§9）。
 
 ## ローカル起動（CPUでも可）
 
