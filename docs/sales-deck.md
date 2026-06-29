@@ -18,7 +18,7 @@ Marp形式スライド（Markdown → スライド/PDF）。
 
 <style>
 h1,h2{color:#0B7C87;} h3{color:#0A5E68;} strong{color:#0A5E68;}
-section{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;}
+section{font-family:"Noto Sans CJK JP","Hiragino Kaku Gothic ProN","Yu Gothic","Zen Kaku Gothic New",sans-serif;}
 section.lead{text-align:center;}
 table{font-size:0.8em;}
 .cols{display:flex;gap:16px;font-size:0.7em;}
