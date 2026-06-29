@@ -8,6 +8,7 @@
  */
 
 const { SAFE_RULES, GUARDED_RULES, TOOTH_RULES } = require("./dictionary");
+const { normalize } = require("./llmNormalize");
 
 /**
  * 生テキストに辞書置換を適用する。
@@ -30,9 +31,14 @@ function applyDictionary(raw) {
  * @param {{ mime?: string, filename?: string }} [_meta]
  * @returns {Promise<string>}
  */
-async function postProcess(raw, _meta) {
-  const text = applyDictionary(raw);
-  // TODO(phase2): if (process.env.STT_POSTPROCESS_LLM === "on") text = await llmNormalize(text);
+async function postProcess(raw, meta) {
+  let text = applyDictionary(raw);
+  // フェーズ2: 環境変数 ON のときだけ LLM 正規化（表記正規化のみ・新情報追加禁止）。
+  // normalize はフェイルオープン（APIキー未設定/エラー時は入力をそのまま返す）なので
+  // 文字起こしを止めない。既定 OFF のためリグレッションは無い。
+  if (process.env.STT_POSTPROCESS_LLM === "on") {
+    text = await normalize(text, meta);
+  }
   return text;
 }
 

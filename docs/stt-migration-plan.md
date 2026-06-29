@@ -4,8 +4,15 @@
 > 「国産STT API → 後処理補正 → 自前 fine-tuning」へコスト順・段階的に移行するための設計書。
 >
 > 対象読者：dentia 開発・運用チーム（個人〜数名）
-> 前提コード：`server.js`（`/api/transcribe` L320-355, `/api/generate` L252-307, 用語ヒント L316）、`index.html`（録音→送信 L1219-1247）
+> 前提コード：`server.js`（`/api/transcribe`, `/api/generate`）、`index.html`（録音→送信）
 > 最終更新：2026-06
+>
+> **実装状況（このリポジトリ）**：本プランの土台はコード化済み。`STT_PROVIDER=openai`（既定）なら現行と完全に同じ挙動。
+> - フェーズ0：STT Adapter（`stt/index.js`）＋後処理補正辞書（`stt/dictionary.js`, `stt/postprocess.js`）＋音声変換（`stt/audio.js`）＝**実装・テスト済み**
+> - フェーズ1：国産API プロバイダ `stt/providers/amivoice.js`＝**実装済み（要API契約・実機検証）**
+> - フェーズ2：LLM正規化 `stt/llmNormalize.js`（`STT_POSTPROCESS_LLM=on`）＝**実装済み**
+> - フェーズ3：自前STT プロバイダ `stt/providers/selfhost.js`＋参照サーバ `infra/faster-whisper/`＝**実装済み（GPU環境で要検証）**
+> - 評価ハーネス `eval/`（`npm run eval`）／ユニットテスト `test/run.js`（`npm test`）＝**実装・実行確認済み**
 
 ---
 
@@ -376,10 +383,29 @@ STT_FALLBACK=amivoice,openai
 
 ---
 
-## 付録：今すぐ着手する3アクション（フェーズ0）
+## 付録：フェーズ0の3アクション（実装済み）
 
-1. **後処理アダプタの骨格**：`stt/index.js`（Adapter）＋`stt/postprocess.js`（辞書置換）を作り、`/api/transcribe` から呼ぶ形に薄くリファクタ。`STT_PROVIDER=openai` のまま挙動不変で導入（リグレッションゼロ）。
-2. **歯科用語辞書 v0**：`#`歯式・EPT・SRP・Per・PD値・主要材料名の誤変換パターンをCSV化。`TRANSCRIBE_PROMPT`（server.js:316）も強化。
-3. **テストセット v0**：β同意済み音声から30会話を人手で正解化＋用語タグ付け、採点スクリプトで現行Whisperのベースライン（WER/CER・term-level・取り違え）を測定。
+1. **後処理アダプタの骨格** ✅：`stt/index.js`（Adapter）＋`stt/postprocess.js`（辞書置換）を実装し、`/api/transcribe` から呼ぶ形にリファクタ済み。`STT_PROVIDER=openai` のまま挙動不変（リグレッションゼロ・テスト済み）。
+2. **歯科用語辞書 v0** ✅：`stt/dictionary.js` に `#`歯式・EPT・SRP・Per・PD値・主要材料名などの誤変換パターンを実装。プロバイダ側の用語ヒント（`stt/providers/openai.js`）も強化済み。
+3. **テストセット v0 と採点器** ✅：`eval/score.js`（WER/CER・term-level・歯番/左右取り違え）＋`eval/terms.js`＋見本データ `eval/dataset/sample.jsonl` を実装。`npm run eval -- <dataset.jsonl>` で現行Whisperと国産/自前を横並び比較できる。あとは**β同意済み音声から30〜50会話を人手で正解化**して投入するだけ（実音声が必要な唯一の残作業）。
 
-> この3つは**GPUもベンダー契約も不要**で、以降すべての意思決定（A/B/Cの選択、fine-tuning の要否）の土台になる。
+> この3つは**GPUもベンダー契約も不要**で、以降すべての意思決定（A/B/Cの選択、fine-tuning の要否）の土台。実装は完了しており、フェーズ1以降は「実APIキー/GPU環境を与えて検証 → go/no-go（§9）」に進むだけ。
+
+---
+
+## 付録2：実装ファイル早見表
+
+| フェーズ | 役割 | ファイル | 状態 |
+|---|---|---|---|
+| 0 | エンジン抽象層（切替・フォールバック） | `stt/index.js` | 実装・テスト済 |
+| 0 | 後処理補正（辞書置換） | `stt/postprocess.js`, `stt/dictionary.js` | 実装・テスト済 |
+| 0 | 音声変換（→16k mono wav） | `stt/audio.js` | 実装済（ffmpeg） |
+| 0 | 現行Whisper | `stt/providers/openai.js` | 実装済（既定） |
+| 1 | 国産STT API | `stt/providers/amivoice.js` | 実装済・要実機検証 |
+| 2 | LLM正規化（表記のみ） | `stt/llmNormalize.js` | 実装済（既定OFF） |
+| 3 | 自前STTクライアント | `stt/providers/selfhost.js` | 実装済・要GPU検証 |
+| 3 | 自前STT参照サーバ | `infra/faster-whisper/` | 実装済・要GPU検証 |
+| 5 | 評価ハーネス | `eval/score.js`, `eval/terms.js` | 実装・実行確認済 |
+| — | ユニットテスト | `test/run.js`（`npm test`） | 16/16 pass |
+
+切替は環境変数のみ：`STT_PROVIDER`（openai/amivoice/selfhost）, `STT_FALLBACK`, `STT_POSTPROCESS_LLM`。各キーは `.env.example` 参照。

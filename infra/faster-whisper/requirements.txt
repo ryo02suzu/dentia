@@ -1,0 +1,6 @@
+# dentia 自前STT 参照サーバの依存（infra/faster-whisper/server.py 用）
+# バージョンは概ねの下限を固定。GPU運用では CUDA/cuDNN とドライバの整合を別途確認すること。
+faster-whisper>=1.0.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9

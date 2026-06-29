@@ -14,14 +14,18 @@
  */
 
 const openai = require("./providers/openai");
-const { makeStub } = require("./providers/notImplemented");
+const amivoice = require("./providers/amivoice");
+const selfhost = require("./providers/selfhost");
 const { postProcess } = require("./postprocess");
 
-// プロバイダ登録表。amivoice/selfhost は実装時に差し替える。
+// プロバイダ登録表。各エンジンは transcribe(buffer, meta) -> {text} を公開する。
+//  - openai   : 現行 Whisper API（既定・フォールバック用）
+//  - amivoice : 国産STT API（フェーズ1）。AMIVOICE_API_KEY 等が未設定なら呼び出し時にthrow。
+//  - selfhost : 自前 faster-whisper 等（フェーズ3）。SELFHOST_STT_URL 未設定なら呼び出し時にthrow。
 const ENGINES = {
   openai: openai.transcribe,
-  amivoice: makeStub("amivoice"),
-  selfhost: makeStub("selfhost"),
+  amivoice: amivoice.transcribe,
+  selfhost: selfhost.transcribe,
 };
 
 /** STT_FALLBACK を配列に。空要素・主エンジン重複・未知名は除去。 */
