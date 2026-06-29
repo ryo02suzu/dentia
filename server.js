@@ -18,9 +18,12 @@ const path = require("path");
 const express = require("express");
 const multer = require("multer");
 const Anthropic = require("@anthropic-ai/sdk");
-const OpenAI = require("openai");
+const { transcribe } = require("./stt");
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+// 文字起こしエンジンは STT Adapter（stt/）が環境変数 STT_PROVIDER で切替える。
+// 既定は openai(=whisper-1)。詳細: docs/stt-migration-plan.md
+const STT_PROVIDER = process.env.STT_PROVIDER || "openai";
 const TRANSCRIBE_MODEL = process.env.OPENAI_TRANSCRIBE_MODEL || "whisper-1";
 const PORT = process.env.PORT || 3000;
 
@@ -307,49 +310,30 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ *
- * AI① 文字起こしエンドポイント（OpenAI Whisper）
- *   音声を受け取り、日本語で文字起こししたテキストを返す。
- *   ここで返したテキストを、フロントが既存の /api/generate に渡す。
+ * AI① 文字起こしエンドポイント（STT Adapter 経由）
+ *   音声を受け取り、日本語で文字起こし＋歯科用語の後処理補正をして返す。
+ *   エンジン（openai/amivoice/selfhost）の切替は STT_PROVIDER で行う。
+ *   返したテキストを、フロントが既存の /api/generate に渡す（入出力は従来互換）。
  * ------------------------------------------------------------------ */
-
-// 歯科用語の認識を少しでも助けるための軽いヒント（今後の精度改善対象）
-const TRANSCRIBE_PROMPT =
-  "歯科診療の会話です。歯式（#46 など）、う蝕、抜髄、根管治療、SRP、プロービング、" +
-  "打診痛、冷水痛、EPT、補綴、クラウン、インレーなどの歯科用語が含まれます。";
-
 app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio"), async (req, res) => {
   if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
     return res.status(400).json({ error: "音声データがありません。" });
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error:
-        "OPENAI_API_KEY が設定されていません。.env に OPENAI_API_KEY を設定してください（.env.example を参照）。",
-    });
-  }
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    // メモリ上のバッファを直接 File 化（ディスクに書き出さない）
-    const file = await OpenAI.toFile(
-      req.file.buffer,
-      req.file.originalname || "audio.webm"
-    );
-    const tr = await openai.audio.transcriptions.create({
-      file,
-      model: TRANSCRIBE_MODEL,
-      language: "ja",
-      prompt: TRANSCRIBE_PROMPT,
+    const { text } = await transcribe(req.file.buffer, {
+      filename: req.file.originalname || "audio.webm",
+      mime: req.file.mimetype,
     });
-    return res.json({ text: tr.text || "" });
+    return res.json({ text: text || "" });
     // req.file.buffer はレスポンス後にGCで破棄される。ディスクには残さない（医療データのため）。
   } catch (err) {
     console.error("[transcribe] error:", err);
     const status = err.status || 500;
     const message =
       err.status === 401
-        ? "OPENAI_API_KEY が無効です。設定を確認してください。"
-        : err.message || "文字起こし中にエラーが発生しました。";
+        ? "文字起こしAPIキーが無効です。設定を確認してください。"
+        : err.userMessage || err.message || "文字起こし中にエラーが発生しました。";
     return res.status(status).json({ error: message });
   }
 });
@@ -406,6 +390,8 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     model: MODEL,
+    sttProvider: STT_PROVIDER,
+    sttFallback: process.env.STT_FALLBACK || "",
     transcribeModel: TRANSCRIBE_MODEL,
     hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
     hasOpenAIKey: !!process.env.OPENAI_API_KEY,
@@ -420,9 +406,9 @@ app.listen(PORT, () => {
       "⚠️  ANTHROPIC_API_KEY が未設定です（SOAP生成に必要）。.env を確認してください。"
     );
   }
-  if (!process.env.OPENAI_API_KEY) {
+  if (STT_PROVIDER === "openai" && !process.env.OPENAI_API_KEY) {
     console.warn(
-      "⚠️  OPENAI_API_KEY が未設定です（録音の文字起こしに必要）。.env を確認してください。"
+      "⚠️  OPENAI_API_KEY が未設定です（STT_PROVIDER=openai の文字起こしに必要）。.env を確認してください。"
     );
   }
 });
