@@ -15,7 +15,8 @@ const CONVO_FIRST =
   "患者）3日前くらいから強くなって、甘いものでもしみます。何もしなくても痛むことはないです。\n" +
   "歯科医師）右下の6番ですね。冷たい水をかけますね……しみますか。\n" +
   "患者）はい、しみます。\n" +
-  "歯科医師）打診痛はなさそうですね。レントゲンを撮りましょう。深い虫歯が神経に近そうです。";
+  "歯科医師）打診痛はなさそうですね。神経が生きているか、電気歯髄診（EPT）も確認します……反応はありますね（生活反応あり）。\n" +
+  "歯科医師）レントゲンを撮りましょう。深い虫歯が神経に近そうです。";
 
 const CONVO_COUNSEL =
   "患者）前歯の見た目を、もう少し白く自然にしたいんです。前から気になっていて。\n" +
@@ -31,6 +32,7 @@ async function fillAndGenerate(page, convo) {
   const ta = page.locator("#convo");
   await ta.click();
   await ta.fill(convo);
+  await ta.evaluate((el) => { el.scrollTop = 0; el.blur(); }); // 先頭から見せる
   await sleep(150);
 }
 
@@ -101,6 +103,7 @@ async function generate(page) {
   // fill + generate on mobile
   await mp.getByRole("button", { name: /手入力/ }).click();
   await mp.locator("#convo").fill(CONVO_FIRST);
+  await mp.locator("#convo").evaluate((el) => { el.scrollTop = 0; el.blur(); });
   await sleep(200);
   await mp.screenshot({ path: path.join(OUT, "07-mobile-input.png") });
   await mp.getByRole("button", { name: /のSOAPを生成|SOAPを生成/ }).first().click();
