@@ -14,7 +14,7 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body{ font-family:"Zen Kaku Gothic New", system-ui, sans-serif; color:var(--ink);
-    font-feature-settings:"palt"; }
+    font-feature-settings:"palt"; word-break:auto-phrase; line-break:strict; }
   .latin{ font-family:"Outfit","Zen Kaku Gothic New",sans-serif; }
   @page{ size:1280px 720px; margin:0; }
   .slide{
@@ -36,7 +36,7 @@
 
   /* content header */
   .head{ position:absolute; top:48px; left:64px; right:64px; }
-  .head h2{ font-size:30px; font-weight:700; color:var(--primary-deep); letter-spacing:.5px; }
+  .head h2{ font-size:33px; font-weight:700; color:var(--primary-deep); letter-spacing:.5px; }
   .head .rule{ height:1px; background:var(--line); margin-top:16px; }
   .sub{ text-align:center; color:var(--primary-dark); font-weight:700; font-size:21px; margin-top:8px; }
   .body{ position:absolute; top:132px; left:64px; right:64px; bottom:74px; }
@@ -60,7 +60,7 @@
   .cover .brand .wd{ font-family:"Outfit",sans-serif; font-weight:700; font-size:52px; color:#fff; letter-spacing:1px; }
   .cover .brand .wd b{ color:#CFF3F6; }
   .cover .tag{ font-size:25px; font-weight:700; color:#Eafdff; line-height:1.5; margin-bottom:18px; }
-  .cover .desc{ font-size:14px; color:rgba(255,255,255,.92); line-height:1.85; }
+  .cover .desc{ font-size:15.5px; color:rgba(255,255,255,.92); line-height:1.95; }
   .cover .ver{ position:absolute; left:80px; top:54px; font-family:"Outfit",sans-serif; font-size:14px; color:rgba(255,255,255,.8); letter-spacing:1px; }
   .cover .beta{ display:inline-block; margin-left:10px; padding:2px 9px; border-radius:20px;
     background:rgba(255,255,255,.2); font-family:"Outfit",sans-serif; font-size:12px; font-weight:600; vertical-align:middle; }
@@ -82,7 +82,7 @@
 
   .painbox{ background:#fff; border:1.5px solid var(--line); border-radius:18px; padding:42px 56px;
     box-shadow:0 10px 30px rgba(10,94,104,.06); }
-  .painbox li{ list-style:none; font-size:19px; color:var(--ink); padding:13px 0 13px 38px; position:relative; }
+  .painbox li{ list-style:none; font-size:21px; color:var(--ink); padding:15px 0 15px 40px; position:relative; }
   .painbox li::before{ content:""; position:absolute; left:6px; top:19px; width:11px; height:11px; border-radius:50%;
     background:var(--primary); }
   .painbox li b{ color:var(--primary-dark); }
@@ -90,12 +90,12 @@
   .cards{ display:grid; gap:20px; height:100%; align-content:center; }
   .card{ background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden;
     box-shadow:0 8px 24px rgba(10,94,104,.06); display:flex; flex-direction:column; }
-  .card .ch{ background:var(--primary); color:#fff; font-weight:700; font-size:18px; text-align:center; padding:13px; }
-  .card .cb{ padding:20px 22px; color:var(--ink-soft); font-size:14.5px; line-height:1.8; flex:1;
+  .card .ch{ background:var(--primary); color:#fff; font-weight:700; font-size:20px; text-align:center; padding:15px; }
+  .card .cb{ padding:18px 22px; color:var(--ink-soft); font-size:16px; line-height:1.85; flex:1;
     display:flex; flex-direction:column; justify-content:center; }
   .card .num{ font-family:"Outfit",sans-serif; font-weight:700; font-size:46px; color:var(--primary); }
   .card .big{ font-family:"Outfit",sans-serif; font-weight:700; font-size:42px; color:var(--accent); }
-  .card h4{ font-size:17px; color:var(--ink); margin-bottom:8px; }
+  .card h4{ font-size:19px; color:var(--ink); margin-bottom:10px; }
 
   .flow{ display:grid; gap:0; align-items:center; height:100%; }
   .fbox{ border-radius:12px; padding:20px 18px; text-align:center; font-weight:600; font-size:16px; color:#fff;
@@ -110,14 +110,14 @@
   .pill{ background:var(--primary-tint); color:var(--primary-dark); border:1px solid var(--primary-soft);
     border-radius:20px; padding:6px 14px; font-size:13.5px; font-weight:600; }
 
-  table.t{ width:100%; border-collapse:separate; border-spacing:0; font-size:15px; }
-  table.t th,table.t td{ padding:13px 16px; border-bottom:1px solid var(--line); text-align:center; }
-  table.t thead th{ background:var(--primary); color:#fff; font-weight:700; }
+  table.t{ width:100%; border-collapse:separate; border-spacing:0; font-size:17px; }
+  table.t th,table.t td{ padding:16px 18px; border-bottom:1px solid var(--line); text-align:center; }
+  table.t thead th{ background:var(--primary); color:#fff; font-weight:700; font-size:18px; }
   table.t thead th:first-child{ background:transparent; color:var(--ink-soft); font-weight:700; text-align:left; }
   table.t td.row{ background:var(--primary-tint); color:var(--primary-deep); font-weight:700; text-align:left; }
   table.t .hl{ background:var(--primary-tint); font-weight:700; color:var(--primary-deep); }
   table.t tr td{ background:#fff; }
-  .note{ font-size:11.5px; color:var(--ink-faint); margin-top:10px; }
+  .note{ font-size:13px; color:var(--ink-faint); margin-top:12px; }
 
   .three{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; height:100%; }
   .feat{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px; box-shadow:0 8px 24px rgba(10,94,104,.06); }
@@ -135,9 +135,9 @@
   .step{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; height:100%; align-content:center; }
   .stepc{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 8px 22px rgba(10,94,104,.06);
     display:flex; flex-direction:column; }
-  .stepc .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:34px; color:var(--primary); line-height:1; }
-  .stepc h4{ font-size:15.5px; margin:8px 0 8px; }
-  .stepc p{ font-size:12.5px; color:var(--ink-soft); line-height:1.7; }
+  .stepc .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:38px; color:var(--primary); line-height:1; }
+  .stepc h4{ font-size:17px; margin:10px 0 8px; }
+  .stepc p{ font-size:14px; color:var(--ink-soft); line-height:1.75; }
   .stepc .thumb{ margin-top:auto; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
   .stepc .thumb img{ display:block; width:100%; }
 
@@ -147,17 +147,21 @@
   .smb .jp{ font-size:12.5px; color:var(--ink-faint); margin-bottom:6px; }
   .smb .tx{ font-size:12.5px; color:var(--ink); line-height:1.7; white-space:pre-line; }
 
-  .kv{ width:100%; border-collapse:separate; border-spacing:0 0; font-size:15px; }
-  .kv td{ padding:14px 18px; border-bottom:1px solid var(--line); }
-  .kv td.k{ background:var(--primary-tint); color:var(--primary-deep); font-weight:700; width:200px; }
+  .kv{ width:100%; border-collapse:separate; border-spacing:0 0; font-size:17px; }
+  .kv td{ padding:17px 20px; border-bottom:1px solid var(--line); }
+  .kv td.k{ background:var(--primary-tint); color:var(--primary-deep); font-weight:700; width:220px; }
 
-  .faq .q{ background:var(--primary); color:#fff; font-weight:700; padding:12px 18px; border-radius:8px 8px 0 0; font-size:15px; }
-  .faq .a{ background:#fff; border:1px solid var(--line); border-top:none; padding:12px 18px; border-radius:0 0 8px 8px;
-    font-size:14px; color:var(--ink-soft); line-height:1.7; margin-bottom:14px; }
+  .faq .q{ background:var(--primary); color:#fff; font-weight:700; padding:14px 20px; border-radius:8px 8px 0 0; font-size:17px; }
+  .faq .a{ background:#fff; border:1px solid var(--line); border-top:none; padding:14px 20px; border-radius:0 0 8px 8px;
+    font-size:16px; color:var(--ink-soft); line-height:1.75; margin-bottom:16px; }
 
-  .twocol{ display:grid; grid-template-columns:1fr 1fr; gap:30px; height:100%; align-items:center; }
-  .lead{ font-size:16px; color:var(--ink-soft); line-height:1.9; }
+  .twocol{ display:grid; grid-template-columns:1fr 1fr; gap:44px; height:100%; align-items:center; }
+  .twocol.top{ align-items:start; padding-top:12px; }
+  .lead{ font-size:18.5px; color:var(--ink-soft); line-height:2.0; }
   .lead b{ color:var(--primary-dark); }
+  /* 目次 */
+  .toc-item{ display:flex; align-items:center; gap:22px; padding:17px 6px; border-bottom:1px solid var(--line); font-size:23px; color:var(--ink); }
+  .toc-item .n{ font-family:"Outfit",sans-serif; color:var(--primary); font-weight:700; font-size:21px; width:34px; }
   .tagchip{ display:inline-block; background:var(--accent-soft); color:#B86A36; border:1px solid #F0CBAE;
     border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; }
 
@@ -174,7 +178,7 @@
   <div class="left">
     <div class="brand"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
     <div class="tag">歯科診療の会話から、<br/>歯科SOAPカルテの下書きを自動生成。</div>
-    <div class="desc">歯科医院での会話を、AIが文字起こし・要約し、<br/>歯式・歯周検査・処置内容まで反映した<br/>SOAP 形式のカルテ下書きを作成する、<br/><b style="color:#fff">歯科専用</b>のAIカルテ作成支援サービスです。</div>
+    <div class="desc">歯科医院での会話を AI が文字起こし・要約し、歯式・歯周検査・処置内容まで反映した SOAP 形式のカルテ下書きを作成する、<b style="color:#fff">歯科専用</b>の AIカルテ作成支援サービスです。</div>
   </div>
   <div class="shotwrap">
     <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/03-result.png" alt=""/></div>
@@ -185,16 +189,16 @@
 <!-- ============ 2. TOC ============ -->
 <section class="slide">
   <div class="head"><h2>目次</h2><div class="rule"></div></div>
-  <div class="body" style="display:grid; grid-template-columns:1fr 1fr; gap:14px 60px; align-content:center; font-size:20px;">
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">01</span> dentia とは</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">06</span> ご利用の流れ・料金</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">02</span> 歯科に特化した設計</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">07</span> セキュリティとデータの扱い</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">03</span> dentia の使い方</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">08</span> よくあるご質問</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">04</span> 生成の例</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">09</span> 提供主体・お問い合わせ</div>
-    <div style="display:flex; gap:18px;"><span class="latin" style="color:var(--primary); font-weight:700; width:28px;">05</span> 他サービス・クラークとの比較</div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1fr; column-gap:80px; align-content:space-evenly;">
+    <div class="toc-item"><span class="n">01</span>dentia とは</div>
+    <div class="toc-item"><span class="n">06</span>ご利用の流れ・料金</div>
+    <div class="toc-item"><span class="n">02</span>歯科に特化した設計</div>
+    <div class="toc-item"><span class="n">07</span>セキュリティとデータの扱い</div>
+    <div class="toc-item"><span class="n">03</span>dentia の使い方</div>
+    <div class="toc-item"><span class="n">08</span>よくあるご質問</div>
+    <div class="toc-item"><span class="n">04</span>生成の例</div>
+    <div class="toc-item"><span class="n">09</span>提供主体・お問い合わせ</div>
+    <div class="toc-item"><span class="n">05</span>他サービス・クラークとの比較</div>
     <div></div>
   </div>
   <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
@@ -240,14 +244,11 @@
   <div class="body">
     <div class="cards" style="grid-template-columns:1fr 1fr 1fr">
       <div class="card"><div class="ch">入力時間の削減</div><div class="cb">
-        会話から SOAP 下書きを自動生成。歯式・所見の<b>手入力を最小化</b>し、
-        診療中・診療後のカルテ作業を軽くすることを目指します。</div></div>
+        <b>歯式・所見の手入力を最小化。</b>会話から SOAP 下書きを自動生成し、診療中・診療後のカルテ作業を軽くします。</div></div>
       <div class="card"><div class="ch">診療への集中</div><div class="cb">
-        「ながら入力」を減らし、<b>患者さんと向き合う時間</b>を確保。
-        会話そのものが記録の素材になります。</div></div>
+        <b>患者さんに向き合う時間を確保。</b>「ながら入力」を減らし、会話そのものが記録の素材になります。</div></div>
       <div class="card"><div class="ch">記録の質の標準化</div><div class="cb">
-        歯科に最適化したテンプレートで、書き手による<b>ばらつきを抑えた</b>
-        SOAP 下書きを生成します。</div></div>
+        <b>書き手によるばらつきを抑制。</b>歯科に最適化したテンプレートで、一定の品質の SOAP 下書きを生成します。</div></div>
     </div>
   </div>
   <div style="position:absolute; left:64px; right:64px; bottom:54px; font-size:12px; color:var(--ink-faint); text-align:center;">
@@ -306,25 +307,20 @@
 <!-- Why dental-specific -->
 <section class="slide">
   <div class="head"><h2>なぜ「歯科版」が必要か</h2><div class="rule"></div></div>
-  <div class="body twocol">
+  <div class="body twocol top">
     <div>
       <div class="lead">
-        医科の初診は「主訴の一本道」。一方、歯科の初診は<br/>
-        <b>全顎のベースライン記録</b>です。う蝕（C0〜C4）・欠損・補綴物、
-        歯周基本検査、咬合、エックス線…と、<b>歯式単位</b>で
-        記録すべき情報が一気に増えます。<br/><br/>
-        汎用の音声カルテでは、この歯科ならではの粒度を
-        うまく構造化できません。dentia は、歯科の語彙と
-        記録様式に最適化することで、<b>そのまま使える下書き</b>を目指します。
+        <p style="margin-bottom:1.2em;">医科の初診は「主訴の一本道」。一方、歯科の初診は<b>全顎のベースライン記録</b>です。う蝕（C0〜C4）・欠損・補綴物、歯周基本検査、咬合、エックス線…と、<b>歯式単位</b>で記録すべき情報が一気に増えます。</p>
+        <p>汎用の音声カルテでは、この歯科ならではの粒度をうまく構造化できません。dentia は歯科の語彙と記録様式に最適化することで、<b>そのまま使える下書き</b>を目指します。</p>
       </div>
     </div>
-    <div class="cards" style="grid-template-columns:1fr; gap:14px;">
+    <div style="display:flex; flex-direction:column; gap:16px;">
       <div class="card"><div class="cb"><h4>① 歯科の語彙に対応</h4>
         C0〜C4／EPT／SRP／RCF／BOP／PCR／SPT／歯式 など、歯科特有の用語の文字起こし・整理に対応。</div></div>
       <div class="card"><div class="cb"><h4>② 全顎ベースラインを構造化</h4>
         主訴歯だけでなく、全顎のう蝕・欠損・補綴・歯周を歯番ごとに整理。</div></div>
       <div class="card"><div class="cb"><h4>③ 創作しない</h4>
-        会話・読み上げに無い所見は補わず「未実施／要確認」に。歯式・左右の取り違えを防ぐ設計。</div></div>
+        会話・読み上げに無い所見は補わず「未実施／要確認」に。歯式・左右の取り違えを防ぐ。</div></div>
     </div>
   </div>
   <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
@@ -356,14 +352,11 @@
   <div class="body">
     <div class="cards" style="grid-template-columns:1fr 1fr 1fr">
       <div class="card"><div class="ch">動く MVP</div><div class="cb">
-        録音 → 文字起こし → 歯科SOAP生成 → ログイン → 医院単位の保存まで、
-        <b>実際に動作する</b>状態です。</div></div>
+        <b>すでに実際に動作します。</b>録音 → 文字起こし → 歯科SOAP生成 → ログイン → 医院単位の保存まで対応。</div></div>
       <div class="card"><div class="ch">下書き支援に限定</div><div class="cb">
-        生成物は<b>下書き</b>です。確定・署名は歯科医師がレセコン／電子カルテ側で行う前提。
-        診断の自動提示は行いません。</div></div>
+        <b>生成物はあくまで下書き。</b>確定・署名は歯科医師がレセコン／電子カルテ側で行う前提で、診断の自動提示は行いません。</div></div>
       <div class="card"><div class="ch">一緒に育てる 1 院を募集</div><div class="cb">
-        同意の取れた医院での<b>クローズドβ</b>から開始し、現場の声で
-        改良していきます。</div></div>
+        <b>同意の取れた医院でのクローズドβ。</b>そこから始め、現場の声で改良していきます。</div></div>
     </div>
   </div>
   <div class="logo"><span class="mk">🦷</span><span class="wd latin">dent<b>ia</b></span></div>
