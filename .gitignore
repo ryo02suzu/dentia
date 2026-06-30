@@ -3,3 +3,10 @@ node_modules/
 .env.local
 npm-debug.log*
 .DS_Store
+
+# Deck render harness: third-party libs & generated/duplicate files
+render/vendor/
+render/shots/
+render/sourire-shots/
+render/index.local.html
+sourire/index.local.html

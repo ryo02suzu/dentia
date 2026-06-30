@@ -127,8 +127,16 @@ function rateLimit(req, res, next) {
 const DAILY_LIMIT = parseInt(process.env.DAILY_API_LIMIT || "200", 10);
 // 1回の生成に渡せる会話の最大文字数（過大なトークン課金を防ぐ）
 const MAX_CONVERSATION_CHARS = parseInt(process.env.MAX_CONVERSATION_CHARS || "16000", 10);
-async function dailyCap(req, res, next) {
-  if (!req.userToken) return next(); // 認証未設定/未ログインはスキップ（authGuardで処理済み）
+// memo / referralTo など補助テキストの上限（会話本文と別枠で課金されるため上限を設ける）
+const MAX_MEMO_CHARS = parseInt(process.env.MAX_MEMO_CHARS || "4000", 10);
+
+// 1日あたりの利用上限をチェックし、当日カウントを+1する。
+// ※ ミドルウェアではなく「入力検証を通過し、実際にAI呼び出しを行う直前」に呼ぶこと。
+//   こうすることで、空入力・長さ超過・APIキー未設定・サイズ超過アップロード等の
+//   “AIを呼ばない”リクエストが上限カウントを消費してしまう不具合を防ぐ。
+// 返り値: { limited:true, error } なら 429 を返して中断、{ limited:false } なら続行。
+async function checkDailyCap(req) {
+  if (!req.userToken) return { limited: false }; // 認証未設定/未ログインはスキップ
   try {
     const base = normalizeSupabaseUrl(process.env.SUPABASE_URL);
     const r = await fetch(`${base}/rest/v1/rpc/bump_api_usage`, {
@@ -143,9 +151,10 @@ async function dailyCap(req, res, next) {
     if (r.ok) {
       const count = await r.json();
       if (typeof count === "number" && count > DAILY_LIMIT) {
-        return res.status(429).json({
+        return {
+          limited: true,
           error: `本日の利用上限（${DAILY_LIMIT}回）に達しました。明日また利用できます。`,
-        });
+        };
       }
     } else {
       // 関数未作成(404)など → 上限を有効化していないとみなしフェイルオープン
@@ -154,7 +163,23 @@ async function dailyCap(req, res, next) {
   } catch (err) {
     console.warn("[dailyCap] error (fail-open):", err.message);
   }
-  next();
+  return { limited: false };
+}
+
+// 文字列項目の検証ヘルパー（型チェック＋長さ上限）。
+// 不正なら { error } を返す。問題なければ { value:(トリム済み文字列) }。
+function checkText(value, { name, max, required }) {
+  if (value == null || value === "") {
+    if (required) return { error: `${name}が空です。` };
+    return { value: "" };
+  }
+  if (typeof value !== "string") {
+    return { error: `${name}の形式が正しくありません。` };
+  }
+  if (value.length > max) {
+    return { error: `${name}が長すぎます（最大 ${max} 文字）。` };
+  }
+  return { value: value.trim() };
 }
 
 /* ------------------------------------------------------------------ *
@@ -164,8 +189,12 @@ const TEMPLATES = {
   first: {
     label: "初診",
     guide:
-      "初診の診療録として整理する。主訴の発症時期・経過・誘発因子・性状を問診として丁寧にまとめ、" +
-      "Oでは初診時に行う基本的な口腔内診査（視診・う蝕/歯周の所見、必要に応じたデンタルX-P・口腔内写真）に触れる。",
+      "歯科の初診の診療録として整理する。歯科の初診は『主訴の一本道』ではなく『全顎のベースライン記録』である点に注意する。\n" +
+      "- S：主訴と、その発症時期・経過・誘発因子・性状（冷水痛/温水痛/自発痛/咬合痛 等）を問診として整理。既往歴・服薬・アレルギーがあれば反映。\n" +
+      "- O：所見は可能な限り『歯式単位（#46 など部位表記）』で記載する。会話・読み上げに出た範囲で、(1)主訴歯の所見、(2)全顎のう蝕（C0〜C4）・欠損・補綴物、(3)歯周基本検査（プロービング値PD・BOP・動揺度・PCR/プラーク）、(4)咬合・粘膜、(5)エックス線（パノラマ/デンタル）所見を整理する。\n" +
+      "- A：会話中に歯科医師が述べた評価・診断（病名・C分類・歯周病名等）の整理に限定。\n" +
+      "- P：治療計画は『来院順（次回→その後→…）』で記載し、最終的にメンテナンス/SPT移行まで見据える。\n" +
+      "【重要】歯科初診のO（所見）の多くは患者との会話には現れず、歯科医師の診査・読み上げから得られる。会話・読み上げに出ていない歯・検査値・所見は決して創作しない。診査されていない項目は『未実施』『記載なし（要確認）』とするか、記載を省略する。",
   },
   recall: {
     label: "再診",
@@ -176,8 +205,10 @@ const TEMPLATES = {
   spt: {
     label: "メンテナンス(SPT)",
     guide:
-      "歯周病安定期治療（SPT）の診療録として整理する。Oでは PCR・プロービングデプス・BOP・歯石沈着などの" +
-      "歯周検査所見を重視し、Aでは歯周組織の安定性を評価、Pでは SPT の継続・再SRP・TBI・リコール間隔を計画する。",
+      "歯周病安定期治療（SPT）の診療録として整理する。Oでは歯周検査所見を重視し、" +
+      "プロービング値は既定で6点法、PCRは%（O'Leary法）で、読み上げに出た範囲を歯番ごとに構造化する。" +
+      "BOP陽性部位・動揺度・歯石沈着・縁下歯石も歯番ごとに整理。Aでは歯周組織の安定性（残存ポケット・BOP傾向）を評価し、" +
+      "PではSPT継続・限局的な再SRP・TBI（ブラッシング指導）・PMTC・リコール間隔を計画する。会話に無い検査値は創作しない。",
   },
   pros: {
     label: "補綴",
@@ -191,6 +222,58 @@ const TEMPLATES = {
       "根管治療（歯内療法）の診療録として整理する。Oでは歯髄・根尖部の状態（EPT反応・打診痛・根尖部圧痛・" +
       "デンタルX-Pでの根尖部透過像など）を重視し、Pでは抜髄/感染根管治療・根管長測定(EMR)・拡大洗浄・根管貼薬・" +
       "根管充填(RCF)といったステップを計画する。",
+  },
+  counsel: {
+    label: "自費カウンセリング",
+    guide:
+      "自費診療（インプラント・矯正・審美・自費補綴等）のカウンセリングの記録として整理する。" +
+      "Sでは主訴・希望・要望、Oでは関連する口腔内所見、Aでは適応の見立て（最終判断は歯科医師）を簡潔に。" +
+      "Pでは『提示した治療選択肢／各選択肢のメリット・リスク・代替案／概算費用／患者の意思決定（検討中・同意・保留等）』を" +
+      "明確に記載する。説明と同意（インフォームド・コンセント）の記録に耐える粒度にし、会話に無い説明内容は創作しない。",
+  },
+  visit: {
+    label: "訪問診療",
+    guide:
+      "歯科訪問診療の記録として整理する。Sでは主訴・本人/家族の訴え、Oでは全身状態・ADL・服薬・口腔衛生状態・" +
+      "口腔内所見、Aでは評価（誤嚥リスク・口腔機能等を含み得る、最終判断は歯科医師）、Pでは実施した処置・口腔ケア・" +
+      "多職種（ケアマネ・訪問看護・施設等）との連携・次回予定を記載する。療養環境の情報も会話に出た範囲で反映する。",
+  },
+  perio: {
+    label: "歯周精密検査(P検査)",
+    guide:
+      "歯周精密検査の記録として整理する。Oを最重視し、読み上げに出たプロービング値を既定で6点法（頬側3点・舌側3点）で" +
+      "歯番ごとに構造化、PCRは%（O'Leary法）、BOP陽性部位・動揺度・根分岐部病変も歯番ごとに付記する。" +
+      "前回値が述べられれば比較に触れる。Aでは歯周組織の状態・進行度を評価、Pではプラークコントロール・SRP・SPT移行・" +
+      "再評価時期を計画する。未測定の部位・歯の値は創作しない。",
+  },
+  surgery: {
+    label: "抜歯・口腔外科",
+    guide:
+      "抜歯・小手術等の口腔外科処置の記録として整理する。Sでは主訴・全身状態（既往・服薬・抗血栓薬等）、" +
+      "Oでは対象歯/部位の所見・X線所見（埋伏・近接する解剖学的構造等）、Aでは診断、Pでは麻酔・術式・止血・縫合・" +
+      "投薬（抗菌薬・鎮痛薬）・術後指示（安静・含嗽・出血時対応）・次回（抜糸・消毒）を記載する。",
+  },
+  pedo: {
+    label: "小児",
+    guide:
+      "小児歯科の記録として整理する。Sでは主訴・保護者の訴え、Oでは協力度・口腔内所見・う蝕罹患状況・咬合発育、" +
+      "Aではう蝕リスク評価等（最終判断は歯科医師）、Pでは処置・フッ素塗布・シーラント・ブラッシング/食事指導・" +
+      "保護者への説明・リコール計画を記載する。小児・保護者への配慮した記載にする。",
+  },
+  ortho: {
+    label: "矯正相談",
+    guide:
+      "矯正の初回相談（カウンセリング）の記録として整理する。Sでは主訴・希望（審美/機能/期間等）、Oでは大まかな" +
+      "口腔内・咬合所見、Aでは大まかな見立て（精密検査前提・最終判断は歯科医師）、Pでは装置の選択肢・概算費用・" +
+      "治療期間の目安・次回の精密検査（セファロ・模型・写真等）の案内・患者の意思決定を記載する。確定診断はしない。",
+  },
+  hygiene: {
+    label: "衛生士記録(SOAPIE)",
+    guide:
+      "歯科衛生士業務の記録として『SOAPIE形式』で整理する。S=患者の訴え、O=口腔/歯周の客観的所見（PCR%・BOP・" +
+      "プロービング等、読み上げ範囲を歯番ごとに）、A=アセスメント、P=計画、I=実施したケア（SC/SRP/PMTC/TBI/フッ素等）、" +
+      "E=実施後の評価（反応・到達度）。歯科衛生士の視点で、指導内容と患者の理解・反応も記載する。" +
+      "出力は S/O/A/P の4項目に集約しつつ、Pの中に『実施(I)』『評価(E)』を明記する（会話に無い内容は創作しない）。",
   },
 };
 
@@ -215,6 +298,22 @@ ${tmpl.guide}
 - 歯科検査の用語を適切に使う: 冷水痛・温水痛・打診痛・自発痛・EPT（電気歯髄診）・プロービング(PD)・BOP・PCR 等。所見の有無は (+)/(-)/(±) で簡潔に表す。
 - 歯科処置の用語を適切に使う: う蝕(C1〜C4)・抜髄・感染根管治療・根管充填(RCF)・SRP・スケーリング・PMTC・補綴(FMC/クラウン/インレー)・支台築造 等。
 - カルテらしい簡潔な体言止め・箇条書き調の日本語で記載する。
+
+# O（口腔内所見）の書き方＝歯式単位の構造化（最重要）
+- 特定の歯に関する所見が複数ある場合は、**歯番ごとに改行して『#歯番：所見』の形式**で構造化する。
+  例）
+  #46：深在性う蝕(C3疑い)、冷水痛(+)、打診痛(-)、EPT生活反応(+)
+  #36：打診痛(+)、根尖部圧痛(+)、EPT(-)、PD 4mm、X-Pで根尖部透過像
+- 全顎共通・部位非特定の所見（歯肉・粘膜の状態、PCR、咬合、パノラマ全体所見など）は、歯ごとの記載の後に簡潔にまとめる。
+- 歯番の表記は、歯科医師が述べた表記を尊重する。明確に部位が述べられている場合は #FDI表記（右下6番→#46 等）に統一してよいが、**部位が曖昧・不確実な場合は無理に番号を割り当てず、述べられたまま記載する。歯番や左右を取り違えない。**
+
+# 歯周検査の所見（読み上げ→構造化テキスト）
+- 歯周検査の値が会話・読み上げに含まれる場合、歯番ごとに構造化したテキストで整理する（レセコンの歯周モジュールの代替ではなく、所見の下書きとして）。
+- プロービング深さ(PD)は既定で**6点法**（頬側：近心・中央・遠心／舌側：近心・中央・遠心）として、述べられた値を歯番ごとに整理する。
+  例）#16 PD 頬側3-2-3／舌側2-3-4、BOP(+)：遠心舌側、動揺度1
+- **PCRは%（O'Leary法）** で記載（例：PCR 18%）。BOPも陽性部位数や%が述べられればそのまま記載。
+- 動揺度（0〜3度）、根分岐部病変（Lindheの分類等）が述べられれば歯番ごとに付記する。
+- **読み上げ・会話に出た値のみを構造化する。述べられていない部位・歯の検査値は創作しない**（未測定は記載しない）。点法や様式が会話から明確に異なる場合は、述べられた様式に従う。
 
 # 重要な制約
 - A（評価・診断）は確定診断ではなく、最終的に歯科医師が確定する前提の「下書き・見立て」である。断定を避け、「〜の可能性」「〜を疑う」「〜を鑑別中」「要精査」等の表現を用いる。
@@ -249,17 +348,28 @@ const SOAP_TOOL = {
 /* ------------------------------------------------------------------ *
  * 生成エンドポイント
  * ------------------------------------------------------------------ */
-app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
-  const { conversation, memo, template } = req.body || {};
+// 出力スタイル（詳細度）の指示。先生ごとの好みに合わせる軽量カスタム。
+function styleNote(detail) {
+  if (detail === "brief")
+    return "\n\n# 出力スタイル\n各項目は要点のみ、最小限の簡潔な記載にする（保険再診向けの短い記録）。冗長な説明は避ける。";
+  if (detail === "detailed")
+    return "\n\n# 出力スタイル\n各項目を丁寧に、所見・経過・根拠・計画を漏れなく詳しく記載する（初診・自費・説明同意向け）。";
+  return "";
+}
 
-  if (!conversation || !conversation.trim()) {
-    return res.status(400).json({ error: "会話テキストが空です。" });
-  }
-  if (conversation.length > MAX_CONVERSATION_CHARS) {
-    return res.status(400).json({
-      error: `会話が長すぎます（最大 ${MAX_CONVERSATION_CHARS} 文字）。録音・入力を分割してお試しください。`,
-    });
-  }
+app.post("/api/generate", authGuard, rateLimit, async (req, res) => {
+  const { conversation, memo, template, detail } = req.body || {};
+
+  // ① 入力検証（AIを呼ぶ前に。ここで弾いたものは上限カウントを消費しない）
+  const conv = checkText(conversation, {
+    name: "会話テキスト",
+    max: MAX_CONVERSATION_CHARS,
+    required: true,
+  });
+  if (conv.error) return res.status(400).json({ error: conv.error });
+  const memoChk = checkText(memo, { name: "補足メモ", max: MAX_MEMO_CHARS });
+  if (memoChk.error) return res.status(400).json({ error: memoChk.error });
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({
       error:
@@ -267,12 +377,16 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
     });
   }
 
+  // ② 検証を通過した“実際にAIを呼ぶ”リクエストだけが日次上限を消費する
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const userContent =
-    `# 診療の会話\n${conversation.trim()}\n\n` +
-    (memo && memo.trim()
-      ? `# 補足メモ（既往歴・アレルギー等）\n${memo.trim()}\n\n`
+    `# 診療の会話\n${conv.value}\n\n` +
+    (memoChk.value
+      ? `# 補足メモ（既往歴・アレルギー等）\n${memoChk.value}\n\n`
       : "") +
     `上記の会話から、歯科のSOAPカルテ下書きを作成し、record_dental_soap ツールで記録してください。`;
 
@@ -280,7 +394,7 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
     const msg = await client.messages.create({
       model: MODEL,
       max_tokens: 1500,
-      system: buildSystemPrompt(template),
+      system: buildSystemPrompt(template) + styleNote(detail),
       tools: [SOAP_TOOL],
       tool_choice: { type: "tool", name: SOAP_TOOL.name },
       messages: [{ role: "user", content: userContent }],
@@ -307,17 +421,90 @@ app.post("/api/generate", authGuard, rateLimit, dailyCap, async (req, res) => {
 });
 
 /* ------------------------------------------------------------------ *
+ * 紹介状（情報提供書）生成エンドポイント
+ *   診療会話から、他院・大学病院・口腔外科等への歯科紹介状の下書きを生成。
+ * ------------------------------------------------------------------ */
+const REFERRAL_SYSTEM = `あなたは日本の歯科診療を支援するAIです。診療の会話から、他の医療機関（大学病院・口腔外科・他科・他院等）への「歯科紹介状（診療情報提供書）」の下書きを作成します。
+
+# 様式（一般的な診療情報提供書に準拠）
+- 宛先（指定があれば「〇〇 御机下」等）／紹介元（[医院名]・[歯科医師名] は記入欄として残す）
+- 傷病名・部位（歯式 #46 等）
+- 紹介目的（精査・加療依頼・対診 等）
+- 既往歴・服薬・アレルギー（会話に出た範囲）
+- 現病歴・現症（主訴、経過、口腔内所見、検査・X線所見）
+- 治療経過・現在の処置内容
+- 依頼事項
+
+# 重要な制約
+- これは歯科医師が確認・修正して確定する前提の「下書き」である。断定を避け、会話に無い情報は創作しない。記入が必要な箇所は [　] で残す。
+- 丁寧な書面の日本語で記載する。本文のみを出力し、前置きや説明は付けない。`;
+
+app.post("/api/referral", authGuard, rateLimit, async (req, res) => {
+  const { conversation, memo, referralTo } = req.body || {};
+  const conv = checkText(conversation, {
+    name: "会話テキスト",
+    max: MAX_CONVERSATION_CHARS,
+    required: true,
+  });
+  if (conv.error) return res.status(400).json({ error: conv.error });
+  const memoChk = checkText(memo, { name: "補足メモ", max: MAX_MEMO_CHARS });
+  if (memoChk.error) return res.status(400).json({ error: memoChk.error });
+  const toChk = checkText(referralTo, { name: "紹介先", max: MAX_MEMO_CHARS });
+  if (toChk.error) return res.status(400).json({ error: toChk.error });
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY が設定されていません。" });
+  }
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const userContent =
+    `# 診療の会話\n${conv.value}\n\n` +
+    (toChk.value ? `# 紹介先\n${toChk.value}\n\n` : "") +
+    (memoChk.value ? `# 補足メモ\n${memoChk.value}\n\n` : "") +
+    `上記から、歯科紹介状（診療情報提供書）の下書き本文を作成してください。`;
+  try {
+    const msg = await client.messages.create({
+      model: MODEL,
+      max_tokens: 1500,
+      system: REFERRAL_SYSTEM,
+      messages: [{ role: "user", content: userContent }],
+    });
+    const textBlock = msg.content.find((b) => b.type === "text");
+    const letter = textBlock ? textBlock.text : "";
+    if (!letter) return res.status(502).json({ error: "AIから有効な結果を取得できませんでした。" });
+    return res.json({ letter });
+  } catch (err) {
+    console.error("[referral] error:", err);
+    const status = err.status || 500;
+    const message = err.status === 401 ? "APIキーが無効です。" : err.message || "生成中にエラーが発生しました。";
+    return res.status(status).json({ error: message });
+  }
+});
+
+/* ------------------------------------------------------------------ *
  * AI① 文字起こしエンドポイント（OpenAI Whisper）
  *   音声を受け取り、日本語で文字起こししたテキストを返す。
  *   ここで返したテキストを、フロントが既存の /api/generate に渡す。
  * ------------------------------------------------------------------ */
 
-// 歯科用語の認識を少しでも助けるための軽いヒント（今後の精度改善対象）
+// 歯科用語の認識精度を上げるためのヒント（Whisperのpromptに渡して認識をバイアス）。
+// 誤変換しやすい歯科用語を中心に列挙。環境変数 TRANSCRIBE_PROMPT で上書き・調整可。
+// ※ Whisperのpromptは長すぎると末尾が無視されるため、頻出・誤変換しやすい語を優先。
 const TRANSCRIBE_PROMPT =
-  "歯科診療の会話です。歯式（#46 など）、う蝕、抜髄、根管治療、SRP、プロービング、" +
-  "打診痛、冷水痛、EPT、補綴、クラウン、インレーなどの歯科用語が含まれます。";
+  process.env.TRANSCRIBE_PROMPT ||
+  [
+    "これは日本の歯科診療の会話です。次の歯科用語が正しく表記されます：",
+    "歯式は #11〜#48（例：#46、右下6番）。う蝕は C0 C1 C2 C3 C4、CR充填、メタルインレー、アンレー。",
+    "歯髄・根管：自発痛、冷水痛、温水痛、打診痛、根尖部圧痛、EPT（電気歯髄診）、失活歯、抜髄、感染根管治療、根管充填(RCF)、根管長測定(EMR)、ラバーダム。",
+    "歯周：プロービング、ポケット、PD、BOP、動揺度、PCR、SC（スケーリング）、SRP、TBI、PMTC、SPT、歯肉炎、歯周炎。",
+    "補綴・外科：FMC、フルジルコニアクラウン、ブリッジ、義歯、支台歯、支台築造、咬合、抜歯、智歯、埋伏歯、嚢胞。",
+  ].join("");
 
-app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio"), async (req, res) => {
+app.post("/api/transcribe", authGuard, rateLimit, upload.single("audio"), async (req, res) => {
+  // multer がアップロードを解析した“後”に検証・上限判定する。
+  // サイズ超過(25MB)や音声なしのリクエストは上限カウントを消費しない。
   if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
     return res.status(400).json({ error: "音声データがありません。" });
   }
@@ -327,6 +514,9 @@ app.post("/api/transcribe", authGuard, rateLimit, dailyCap, upload.single("audio
         "OPENAI_API_KEY が設定されていません。.env に OPENAI_API_KEY を設定してください（.env.example を参照）。",
     });
   }
+
+  const cap = await checkDailyCap(req);
+  if (cap.limited) return res.status(429).json({ error: cap.error });
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

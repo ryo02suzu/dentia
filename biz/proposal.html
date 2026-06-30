@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>歯科 集患サポート 提案資料</title>
+<style>
+  :root{
+    --p:#0E9AA7; --p-d:#0B7C87; --p-deep:#0A5E68; --p-soft:#D4ECEE; --p-tint:#E8F6F7;
+    --ink:#16323A; --ink-s:#4A636B; --ink-f:#8AA0A6; --line:#E2EAEC; --mint:#F1FAFB;
+    --warm:#F2785C; --warm-soft:#FCE7E1; --gold:#E8915A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ font-family:"Zen Kaku Gothic New", system-ui, sans-serif; color:var(--ink);
+    font-feature-settings:"palt"; word-break:auto-phrase; line-break:strict; }
+  .latin{ font-family:"Outfit","Zen Kaku Gothic New",sans-serif; }
+  @page{ size:1280px 720px; margin:0; }
+  .s{ position:relative; width:1280px; height:720px; overflow:hidden; background:var(--mint);
+    page-break-after:always; break-after:page; }
+  .s:last-child{ page-break-after:auto; }
+  .logo{ position:absolute; left:64px; bottom:30px; font-family:"Outfit",sans-serif; font-weight:600;
+    font-size:16px; color:var(--p-deep); letter-spacing:.5px; }
+  .logo b{ color:var(--p); }
+  .pg{ position:absolute; right:40px; bottom:30px; font-family:"Outfit",sans-serif; font-size:14px; color:var(--ink-f); }
+  .head{ position:absolute; top:54px; left:72px; right:72px; }
+  .head h2{ font-size:36px; font-weight:700; color:var(--p-deep); letter-spacing:.5px; }
+  .head .rule{ height:2px; background:var(--p-soft); margin-top:18px; }
+  .body{ position:absolute; top:150px; left:72px; right:72px; bottom:84px; }
+
+  /* cover */
+  .cover{ background:linear-gradient(120deg,#0E9AA7 0%,#0C8D99 48%,#0A6B73 100%); }
+  .cover .in{ position:absolute; left:80px; top:0; bottom:0; right:80px; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kick{ font-family:"Outfit",sans-serif; font-size:16px; letter-spacing:3px; color:#CFF3F6; margin-bottom:22px; }
+  .cover h1{ font-size:50px; font-weight:700; color:#fff; line-height:1.4; margin-bottom:26px; }
+  .cover h1 .u{ color:#FFE0D6; }
+  .cover .sub{ font-size:20px; color:rgba(255,255,255,.92); line-height:1.8; }
+  .cover .by{ position:absolute; left:80px; bottom:54px; font-family:"Outfit",sans-serif; font-size:16px; color:rgba(255,255,255,.8); letter-spacing:1px; }
+  .cover .by b{ color:#fff; }
+
+  .lead{ font-size:21px; color:var(--ink-s); line-height:1.95; }
+  .lead b{ color:var(--p-d); }
+  .big{ font-family:"Outfit",sans-serif; font-weight:700; color:var(--warm); }
+
+  .stat3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:26px; height:100%; align-content:center; }
+  .stat{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:34px 26px; text-align:center;
+    box-shadow:0 10px 28px rgba(10,94,104,.07); display:flex; flex-direction:column; justify-content:center; }
+  .stat .n{ font-family:"Outfit",sans-serif; font-weight:700; font-size:52px; color:var(--warm); line-height:1; }
+  .stat .n.teal{ color:var(--p); }
+  .stat .l{ font-size:17px; color:var(--ink-s); margin-top:14px; line-height:1.6; }
+
+  .cards3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; height:100%; align-content:center; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden;
+    box-shadow:0 10px 28px rgba(10,94,104,.07); display:flex; flex-direction:column; }
+  .card .ch{ background:var(--p); color:#fff; font-weight:700; font-size:20px; text-align:center; padding:18px; }
+  .card .cb{ padding:24px; font-size:16.5px; color:var(--ink-s); line-height:1.9; flex:1; }
+  .card .cb b{ color:var(--ink); }
+  .num-badge{ width:46px; height:46px; border-radius:50%; background:var(--p-tint); color:var(--p);
+    font-family:"Outfit",sans-serif; font-weight:700; font-size:22px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+
+  .why{ display:grid; grid-template-columns:1fr 1fr; gap:22px; height:100%; align-content:center; }
+  .whyc{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px 28px; box-shadow:0 8px 22px rgba(10,94,104,.06);
+    display:flex; gap:18px; align-items:flex-start; }
+  .whyc .ic{ width:46px; height:46px; border-radius:12px; background:var(--warm-soft); color:var(--warm); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; }
+  .whyc h4{ font-size:19px; margin-bottom:7px; }
+  .whyc p{ font-size:15.5px; color:var(--ink-s); line-height:1.8; }
+
+  table.t{ width:100%; border-collapse:collapse; font-size:19px; border:2px solid var(--line); border-radius:12px; overflow:hidden; }
+  table.t th,table.t td{ padding:20px 22px; border:1px solid var(--line); text-align:center; }
+  table.t thead th{ background:var(--p); color:#fff; font-weight:700; font-size:20px; }
+  table.t thead th:first-child{ background:#EEF3F4; color:var(--ink-s); text-align:left; }
+  table.t td.row{ background:#EEF3F4; color:var(--ink); font-weight:700; text-align:left; }
+  table.t .price{ font-family:"Outfit",sans-serif; font-weight:700; font-size:26px; color:var(--p-deep); }
+  table.t .free{ color:var(--warm); }
+  .pill{ display:inline-block; background:var(--warm-soft); color:#C0492F; border:1px solid #F3C9BD;
+    border-radius:30px; padding:8px 20px; font-size:18px; font-weight:700; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; height:100%; align-content:center; }
+  .kpi{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px; box-shadow:0 8px 22px rgba(10,94,104,.06); text-align:center; }
+  .kpi .ic{ font-size:30px; }
+  .kpi h4{ font-size:18px; margin:10px 0 6px; }
+  .kpi p{ font-size:14.5px; color:var(--ink-s); line-height:1.7; }
+
+  .cta{ background:linear-gradient(120deg,#0E9AA7,#0A6B73); }
+  .cta .in{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 80px; }
+  .cta h2{ font-size:46px; color:#fff; font-weight:700; line-height:1.4; margin-bottom:24px; }
+  .cta .free-tag{ display:inline-block; background:#fff; color:var(--p-deep); font-weight:700; font-size:22px; padding:12px 30px; border-radius:40px; margin-bottom:30px; }
+  .cta .contact{ font-size:20px; color:rgba(255,255,255,.95); line-height:2; }
+  .cta .contact b{ color:#fff; font-family:"Outfit",sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- 1 COVER -->
+<section class="s cover">
+  <div class="in">
+    <div class="kick latin">DENTAL PATIENT GROWTH</div>
+    <h1>「患者が来ない」を、<br/>歯科が分かる人間が、<span class="u">AI</span>で解決する。</h1>
+    <div class="sub">Googleマップ・口コミ・来なくなった患者の呼び戻しで、<br/>広告に頼らず来院を増やす、歯科専門の集患サポート。</div>
+  </div>
+  <div class="by latin">by <b>Sourirette</b></div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="s">
+  <div class="head"><h2>歯科医院は今、「患者が来ない」で潰れている</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="stat3">
+      <div class="stat"><div class="n teal">6.8<span style="font-size:26px">万軒</span></div><div class="l">全国の歯科医院数。<br/>コンビニ（5.6万）より多い供給過剰</div></div>
+      <div class="stat"><div class="n">82<span style="font-size:30px">%</span></div><div class="l">2025年の歯科倒産の原因が<br/><b style="color:var(--ink)">「販売不振＝患者が来ない」</b></div></div>
+      <div class="stat"><div class="n">39<span style="font-size:26px">件</span></div><div class="l">2025年の歯科関連倒産。<br/>過去20年で最多</div></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:72px; right:72px; bottom:54px; font-size:13px; color:var(--ink-f);">出典：厚労省 医療施設動態調査／東京商工リサーチ（2025）</div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">02</div>
+</section>
+
+<!-- 3 INSIGHT -->
+<section class="s">
+  <div class="head"><h2>でも、一番効くのは「新規広告」ではない</h2><div class="rule"></div></div>
+  <div class="body" style="display:flex; flex-direction:column; justify-content:center;">
+    <div class="lead">
+      新しい患者を広告で買うのは<b>高くて、競争も激しい</b>。<br/>
+      実は、医院がすでに持っている<b>「3つの資産」</b>を磨く方が、<br/>
+      <span class="big" style="font-size:24px;">お金をかけずに・早く・確実に</span>来院を増やせます。
+    </div>
+    <div style="display:flex; gap:18px; margin-top:34px;">
+      <div class="pill" style="background:var(--p-tint); color:var(--p-deep); border-color:var(--p-soft);">① Googleマップ・口コミ</div>
+      <div class="pill" style="background:var(--p-tint); color:var(--p-deep); border-color:var(--p-soft);">② 来なくなった患者</div>
+      <div class="pill" style="background:var(--p-tint); color:var(--p-deep); border-color:var(--p-soft);">③ 定期リコール</div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">03</div>
+</section>
+
+<!-- 4 WHAT WE DO -->
+<section class="s">
+  <div class="head"><h2>やること（先生の手間はゼロ）</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="cards3">
+      <div class="card"><div class="ch">① MEO運用</div><div class="cb">
+        <b>Googleマップで上位に。</b>ビジネスプロフィールの投稿・最適化を毎月代行。「◯◯市 歯医者」で見つけてもらう。</div></div>
+      <div class="card"><div class="ch">② 口コミ返信代行</div><div class="cb">
+        <b>★評価と信頼を上げる。</b>すべての口コミに丁寧な返信を作成・投稿。低評価も誠実に対応し、見込み患者の安心に。</div></div>
+      <div class="card"><div class="ch">③ リコール掘り起こし</div><div class="cb">
+        <b>来なくなった患者を呼び戻す。</b>最終来院から時間が経った方へ、定期検診をうながす文面を作成。再来院＝すぐ売上に。</div></div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">04</div>
+</section>
+
+<!-- 5 WHY US -->
+<section class="s">
+  <div class="head"><h2>なぜ Sourirette か</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="why">
+      <div class="whyc"><div class="ic">歯</div><div><h4>歯科の現場が分かる</h4><p>歯科の人間が運営。専門用語・診療の流れを理解した上で、患者に伝わる言葉で発信します。</p></div></div>
+      <div class="whyc"><div class="ic">AI</div><div><h4>AIで、安く・速く</h4><p>文章作成はAIで量産。だから外部の代理店より低価格で、スピーディーに回せます。</p></div></div>
+      <div class="whyc"><div class="ic">¥0</div><div><h4>初期費用ゼロ・縛りなし</h4><p>既存の集患代行は初期5万〜・年契約が普通。当社は初期0・1ヶ月単位。やめたい時にやめられます。</p></div></div>
+      <div class="whyc"><div class="ic">📈</div><div><h4>数字で見える</h4><p>口コミ数・マップ順位・再来院数を毎月レポート。「効いているか」が一目で分かります。</p></div></div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">05</div>
+</section>
+
+<!-- 6 PRICING -->
+<section class="s">
+  <div class="head"><h2>料金　<span class="pill" style="font-size:15px; padding:6px 16px; vertical-align:middle;">初期費用 0 ・ 縛りなし</span></h2><div class="rule"></div></div>
+  <div class="body" style="display:flex; flex-direction:column; justify-content:center;">
+    <table class="t">
+      <thead><tr><th>プラン</th><th>月額</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td class="row">ライト</td><td class="price">¥30,000</td><td>MEO運用（月8投稿）＋ 口コミ返信代行</td></tr>
+        <tr><td class="row">スタンダード</td><td class="price">¥50,000</td><td>ライト ＋ リコール掘り起こし ＋ 月次レポート</td></tr>
+        <tr><td class="row">お試しモニター</td><td class="price free">初月 無料</td><td>まずは30日、数字でご判断ください</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:20px; font-size:15px; color:var(--ink-f);">※ Google広告などの広告出稿費は実費別。まずは広告ゼロのMEO・口コミ・リコールで成果を出します。</div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">06</div>
+</section>
+
+<!-- 7 RESULTS -->
+<section class="s">
+  <div class="head"><h2>成果は、毎月この数字でご報告します</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="kpis">
+      <div class="kpi"><div class="ic">⭐</div><h4>Google口コミ</h4><p>件数・★平均の推移</p></div>
+      <div class="kpi"><div class="ic">📍</div><h4>マップ表示順位</h4><p>主要キーワードでの順位</p></div>
+      <div class="kpi"><div class="ic">📞</div><h4>プロフィール経由</h4><p>アクセス・電話・経路検索の数</p></div>
+      <div class="kpi"><div class="ic">🔁</div><h4>リコール再来院</h4><p>送信数 → 再来院数</p></div>
+      <div class="kpi"><div class="ic">🆕</div><h4>新患数</h4><p>医院ヒアリングで把握</p></div>
+      <div class="kpi"><div class="ic">📝</div><h4>来月の施策</h4><p>次に何をやるかを明示</p></div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">07</div>
+</section>
+
+<!-- 8 CTA -->
+<section class="s cta">
+  <div class="in">
+    <div class="free-tag">まずは 30日間、無料で。</div>
+    <h2>数字を見てから、<br/>続けるか決めてください。</h2>
+    <div class="contact">
+      歯科 集患サポート　by <b>Sourirette</b><br/>
+      <b>sourirette.consulting@gmail.com</b>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

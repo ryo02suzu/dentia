@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>Sourire 紹介資料</title>
+<style>
+  :root{
+    --p:#0E9AA7; --p-d:#0B7C87; --p-deep:#0A5E68; --p-soft:#D4ECEE; --p-tint:#E8F6F7;
+    --ink:#16323A; --ink-s:#4A636B; --ink-f:#8AA0A6; --line:#E2EAEC; --mint:#F2FBFC;
+    --warm:#F2785C; --warm-soft:#FDECE7; --warm-d:#C0492F;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ font-family:"Zen Kaku Gothic New", system-ui, sans-serif; color:var(--ink);
+    font-feature-settings:"palt"; word-break:auto-phrase; line-break:strict; }
+  .latin{ font-family:"Outfit","Zen Kaku Gothic New",sans-serif; }
+  @page{ size:1280px 720px; margin:0; }
+  .s{ position:relative; width:1280px; height:720px; overflow:hidden; background:var(--mint);
+    page-break-after:always; break-after:page; }
+  .s:last-child{ page-break-after:auto; }
+
+  .logo{ position:absolute; left:64px; bottom:30px; font-family:"Outfit"; font-weight:600; font-size:16px;
+    color:var(--p-deep); letter-spacing:.3px; }
+  .logo b{ color:var(--p); }
+  .pg{ position:absolute; right:40px; bottom:30px; font-family:"Outfit"; font-size:13px; color:var(--ink-f); }
+  .head{ position:absolute; top:52px; left:72px; right:72px; }
+  .head h2{ font-size:34px; font-weight:700; color:var(--p-deep); letter-spacing:.4px; }
+  .head .rule{ height:2px; background:var(--p-soft); margin-top:16px; }
+  .body{ position:absolute; top:148px; left:72px; right:72px; bottom:80px; }
+
+  /* cover */
+  .cover{ background:linear-gradient(120deg,#0E9AA7 0%,#0C8D99 46%,#0A6B73 100%); }
+  .cover .in{ position:absolute; left:80px; top:0; bottom:0; width:560px; display:flex; flex-direction:column; justify-content:center; }
+  .cover .mk{ width:58px; height:58px; border-radius:16px; background:rgba(255,255,255,.16); display:flex; align-items:center;
+    justify-content:center; font-family:"Outfit"; font-weight:700; font-size:30px; color:#fff; margin-bottom:24px; }
+  .cover h1{ font-family:"Outfit"; font-weight:700; font-size:60px; color:#fff; letter-spacing:1px; margin-bottom:8px; }
+  .cover .tag{ font-size:25px; font-weight:700; color:#EAFDFF; line-height:1.5; margin-bottom:20px; }
+  .cover .desc{ font-size:15px; color:rgba(255,255,255,.92); line-height:1.95; }
+  .cover .by{ position:absolute; left:80px; bottom:54px; font-family:"Outfit"; font-size:15px; color:rgba(255,255,255,.8); letter-spacing:1px; }
+  .cover .by b{ color:#fff; }
+  .cover .shot{ position:absolute; right:-30px; top:150px; width:700px; border-radius:12px; overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,.34); border:1px solid rgba(255,255,255,.2); }
+  .cover .shot img{ display:block; width:100%; }
+
+  /* divider */
+  .div{ background:linear-gradient(135deg,#15A9B4,#0E9AA7 45%,#0A6B73); }
+  .div .frame{ position:absolute; inset:40px; border:1.5px solid rgba(255,255,255,.5); border-radius:14px; }
+  .div .num{ position:absolute; top:300px; left:0; right:0; text-align:center; font-family:"Outfit"; font-weight:600;
+    font-size:18px; color:rgba(255,255,255,.85); letter-spacing:2px; }
+  .div .ttl{ position:absolute; top:332px; left:0; right:0; text-align:center; font-size:34px; font-weight:700; color:#fff; }
+  .div .logo{ color:#fff; } .div .logo b{ color:#EAFBFC; }
+
+  .lead{ font-size:21px; color:var(--ink-s); line-height:2.0; }
+  .lead b{ color:var(--p-d); } .lead .w{ color:var(--warm-d); font-weight:700; }
+
+  .stat3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; align-content:center; height:100%; }
+  .stat{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:32px 24px; text-align:center; box-shadow:0 10px 28px rgba(10,94,104,.07);
+    display:flex; flex-direction:column; justify-content:center; }
+  .stat .n{ font-family:"Outfit"; font-weight:700; font-size:50px; line-height:1; color:var(--warm); }
+  .stat .n.teal{ color:var(--p); }
+  .stat .l{ font-size:16px; color:var(--ink-s); margin-top:14px; line-height:1.6; }
+
+  /* feature slide: text + framed screenshot (same grid pattern that renders on p9) */
+  .feat{ display:grid; grid-template-columns:1fr 1fr; gap:40px; height:100%; align-items:center; }
+  .feat .txt .fn{ font-family:"Outfit"; font-weight:700; font-size:18px; color:var(--warm); letter-spacing:1px; }
+  .feat .txt h3{ font-size:28px; margin:8px 0 18px; line-height:1.4; }
+  .feat .txt p{ font-size:17px; color:var(--ink-s); line-height:2.0; }
+  .feat .txt .chk{ margin-top:16px; }
+  .feat .txt .chk div{ font-size:15.5px; color:var(--ink); padding:6px 0 6px 28px; position:relative; }
+  .feat .txt .chk div::before{ content:"✓"; position:absolute; left:0; color:var(--p); font-weight:700; }
+  .browser{ border-radius:12px; overflow:hidden; box-shadow:0 18px 44px rgba(10,94,104,.18); border:1px solid var(--line); background:#fff; }
+  .browser .bar{ height:30px; background:#EAF0F1; display:flex; align-items:center; gap:7px; padding:0 13px; }
+  .browser .bar i{ width:11px; height:11px; border-radius:50%; background:#CBD5D8; }
+  .browser img{ display:block; width:100%; }
+
+  .cards3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; height:100%; align-content:center; }
+  .cards4{ display:grid; grid-template-columns:1fr 1fr; gap:20px; height:100%; align-content:center; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px; box-shadow:0 8px 24px rgba(10,94,104,.06); }
+  .card .ic{ width:48px; height:48px; border-radius:13px; background:var(--p-tint); color:var(--p); display:flex;
+    align-items:center; justify-content:center; font-size:24px; font-weight:700; margin-bottom:14px; }
+  .card h4{ font-size:19px; margin-bottom:9px; }
+  .card p{ font-size:15px; color:var(--ink-s); line-height:1.85; }
+  .card p b{ color:var(--ink); }
+
+  table.t{ width:100%; border-collapse:collapse; font-size:17px; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; }
+  table.t th,table.t td{ padding:16px 18px; border:1px solid var(--line); text-align:center; }
+  table.t thead th{ background:var(--p); color:#fff; font-weight:700; font-size:17px; }
+  table.t thead th.us{ background:var(--warm); }
+  table.t thead th:first-child{ background:#EEF3F4; color:var(--ink-s); text-align:left; }
+  table.t td.row{ background:#EEF3F4; color:var(--ink); font-weight:700; text-align:left; }
+  table.t td.us{ background:var(--warm-soft); color:var(--warm-d); font-weight:700; }
+  .note{ font-size:13px; color:var(--ink-f); margin-top:12px; }
+
+  .price{ display:grid; grid-template-columns:1fr 1fr; gap:24px; height:100%; align-content:center; }
+  .pcard{ background:#fff; border:2px solid var(--line); border-radius:20px; padding:32px; box-shadow:0 10px 28px rgba(10,94,104,.07); }
+  .pcard.hi{ border-color:var(--warm); }
+  .pcard .pn{ font-size:18px; font-weight:700; color:var(--p-deep); }
+  .pcard .amt{ font-family:"Outfit"; font-weight:700; font-size:44px; color:var(--ink); margin:6px 0 4px; }
+  .pcard .amt small{ font-size:18px; color:var(--ink-f); }
+  .pcard ul{ list-style:none; margin-top:14px; }
+  .pcard li{ font-size:15px; color:var(--ink-s); padding:7px 0 7px 26px; position:relative; }
+  .pcard li::before{ content:"✓"; position:absolute; left:0; color:var(--p); font-weight:700; }
+  .pcard .tag{ display:inline-block; background:var(--warm-soft); color:var(--warm-d); font-size:13px; font-weight:700; padding:5px 14px; border-radius:20px; margin-bottom:6px; }
+
+  .flow{ display:grid; grid-template-columns:1fr 0.2fr 1fr 0.2fr 1fr; gap:14px; align-items:center; height:100%; align-content:center; }
+  .fbox{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px 20px; text-align:center; box-shadow:0 8px 22px rgba(10,94,104,.06); }
+  .fbox .fn{ font-family:"Outfit"; font-weight:700; font-size:26px; color:var(--p); }
+  .fbox h4{ font-size:17px; margin:8px 0; }
+  .fbox p{ font-size:13.5px; color:var(--ink-s); line-height:1.7; }
+  .arr{ text-align:center; color:var(--p); font-size:28px; }
+
+  .cta{ background:linear-gradient(120deg,#0E9AA7,#0A6B73); }
+  .cta .in{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 80px; }
+  .cta .tg{ display:inline-block; background:#fff; color:var(--p-deep); font-weight:700; font-size:21px; padding:12px 30px; border-radius:40px; margin-bottom:26px; }
+  .cta h2{ font-size:44px; color:#fff; font-weight:700; line-height:1.45; margin-bottom:26px; }
+  .cta .c{ font-size:19px; color:rgba(255,255,255,.95); line-height:2; }
+  .cta .c b{ color:#fff; font-family:"Outfit"; }
+</style>
+</head>
+<body>
+
+<!-- 1 COVER -->
+<section class="s cover">
+  <div class="in">
+    <div class="mk latin">S</div>
+    <h1>Sourire</h1>
+    <div class="tag">来なくなった患者を呼び戻し、<br/>口コミ・Googleマップ集患も自動運用。</div>
+    <div class="desc">リコール掘り起こし・口コミ返信・Google投稿を、歯科に特化したAIが自動化。<br/>レセコン連携は不要。月数千円から、初期費用0で今日から始められます。</div>
+  </div>
+  <div class="shot"><img src="assets/dash.png" alt=""/></div>
+  <div class="by latin">by <b>Sourirette</b></div>
+</section>
+
+<!-- 2 TOC -->
+<section class="s">
+  <div class="head"><h2>目次</h2><div class="rule"></div></div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1fr; column-gap:80px; align-content:space-evenly; font-size:21px;">
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">01</span> なぜ今、口コミ・Googleマップか</div>
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">04</span> 他サービスとの違い</div>
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">02</span> Sourire でできること</div>
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">05</span> 料金・導入の流れ</div>
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">03</span> なぜ Sourire か</div>
+    <div style="display:flex; gap:20px; padding:14px 4px; border-bottom:1px solid var(--line);"><span class="latin" style="color:var(--p); font-weight:700;">06</span> お問い合わせ</div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div>
+</section>
+
+<!-- 3 DIV 01 -->
+<section class="s div"><div class="frame"></div><div class="num latin">01</div><div class="ttl">なぜ今、口コミ・Googleマップか</div><div class="logo latin">by <b>Sourirette</b></div></section>
+
+<!-- 4 PROBLEM stats -->
+<section class="s">
+  <div class="head"><h2>「患者が来ない」で歯科医院が潰れている</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="stat3">
+      <div class="stat"><div class="n teal">6.8<small style="font-size:24px">万軒</small></div><div class="l">全国の歯科医院数。<br/>コンビニ（5.6万）より多い供給過剰</div></div>
+      <div class="stat"><div class="n">82<small style="font-size:28px">%</small></div><div class="l">2025年の歯科倒産の原因が<br/><b style="color:var(--ink)">「販売不振＝患者が来ない」</b></div></div>
+      <div class="stat"><div class="n">8<small style="font-size:26px">割</small></div><div class="l">新患が歯医者を探すとき<br/>まず見るのは<b style="color:var(--ink)">Google／地図</b></div></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:72px; right:72px; bottom:52px; font-size:12.5px; color:var(--ink-f);">出典：厚労省 医療施設動態調査／東京商工リサーチ（2025）。「8割」は来院前のオンライン検索行動の一般的傾向。</div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">04</div>
+</section>
+
+<!-- 5 INSIGHT -->
+<section class="s">
+  <div class="head"><h2>広告より先に、やるべきことがある</h2><div class="rule"></div></div>
+  <div class="body" style="display:flex; flex-direction:column; justify-content:center;">
+    <div class="lead">
+      新患は、来院前に必ず <b>Googleマップと口コミ</b> を見ます。<br/>
+      ところが多くの医院が、<span class="w">口コミに返信せず・投稿もせず放置</span>。<br/><br/>
+      ここを整えるだけで、<b>広告にお金をかけずに</b> 「選ばれる医院」になれます。<br/>
+      Sourire は、その作業を <span class="w">AIで自動化</span> します。
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">05</div>
+</section>
+
+<!-- 6 DIV 02 -->
+<section class="s div"><div class="frame"></div><div class="num latin">02</div><div class="ttl">Sourire でできること</div><div class="logo latin">by <b>Sourirette</b></div></section>
+
+<!-- FEATURE 1: RECALL (headline) -->
+<section class="s">
+  <div class="head"><h2>① 来なくなった患者を、AIが呼び戻す</h2><div class="rule"></div></div>
+  <div class="body feat">
+    <div class="txt">
+      <div class="fn latin">AI RECALL — 看板機能</div>
+      <h3>リコール掘り起こし。<br/>新規集患より、安く・確実に。</h3>
+      <p>名簿を取り込むと、未来院の患者をAIが自動で抽出。ひとりずつ最適な文面を作成し、SMS / LINE / はがきで送ります。</p>
+      <div class="chk">
+        <div>定期検診切れ・SPT中断・補綴メンテ等を自動で区分</div>
+        <div>レセコン連携 不要（CSV取り込みで今すぐ）</div>
+        <div>送信 → 再来院をダッシュボードで可視化</div>
+      </div>
+    </div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/recall.png" alt=""/></div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">07</div>
+</section>
+
+<!-- FEATURE 2: reviews -->
+<section class="s">
+  <div class="head"><h2>② AIが、口コミに自動で返信</h2><div class="rule"></div></div>
+  <div class="body feat">
+    <div class="txt">
+      <div class="fn latin">AI REVIEW REPLY</div>
+      <h3>新着の口コミに、すぐ・丁寧に。</h3>
+      <p>口コミが入ると、医院のトーンに合わせた返信案をAIが作成。確認して投稿するだけ。</p>
+      <div class="chk">
+        <div>低評価には、誠実な謝罪と改善姿勢を自動で</div>
+        <div>返信率100%＝「ちゃんとした医院」の印象に</div>
+        <div>医療広告ガイドラインに配慮した文面</div>
+      </div>
+    </div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/reviews.png" alt=""/></div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">07</div>
+</section>
+
+<!-- 8 FEATURE 2: MEO -->
+<section class="s">
+  <div class="head"><h2>③ AIが、Google投稿を自動作成</h2><div class="rule"></div></div>
+  <div class="body feat">
+    <div class="txt">
+      <div class="fn latin">AI MEO POST</div>
+      <h3>毎月の投稿で、<br/>マップ露出を維持。</h3>
+      <p>テーマを選ぶだけで、AIが歯科向けの投稿文を作成。予約投稿で手間なく継続。</p>
+      <div class="chk">
+        <div>定期検診・予防・自費メニューなどを発信</div>
+        <div>地域名を入れてMEO（地図）対策</div>
+        <div>誇大表現を避けた安全な文面</div>
+      </div>
+    </div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/meo.png" alt=""/></div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">08</div>
+</section>
+
+<!-- 9 FEATURE 3: get stars + dashboard -->
+<section class="s">
+  <div class="head"><h2>④ 口コミを増やし、効果が見える</h2><div class="rule"></div></div>
+  <div class="body" style="display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:center;">
+    <div>
+      <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/getstars.png" alt=""/></div>
+      <div style="text-align:center; margin-top:12px; font-weight:700; color:var(--p-dark);">口コミ獲得QR（正攻法）</div>
+    </div>
+    <div>
+      <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="assets/dash.png" alt=""/></div>
+      <div style="text-align:center; margin-top:12px; font-weight:700; color:var(--p-dark);">ダッシュボードで数字を可視化</div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">09</div>
+</section>
+
+<!-- 10 DIV 03 -->
+<section class="s div"><div class="frame"></div><div class="num latin">03</div><div class="ttl">なぜ Sourire か</div><div class="logo latin">by <b>Sourirette</b></div></section>
+
+<!-- 11 WHY US -->
+<section class="s">
+  <div class="head"><h2>4つの理由</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="cards4">
+      <div class="card"><div class="ic">歯</div><h4>歯科に特化</h4><p>歯科の用語・診療・季節ネタを理解したAI。<b>そのまま使える</b>文面が出ます。</p></div>
+      <div class="card"><div class="ic">⚡</div><h4>設定不要・5分で</h4><p>医院名を入れるだけ。<b>難しい設定なし</b>。スマホでも使えます。</p></div>
+      <div class="card"><div class="ic">🔌</div><h4>レセコン連携 不要</h4><p>患者カルテに触れず、Googleの公開プロフィールだけで動く。<b>導入が軽い。</b></p></div>
+      <div class="card"><div class="ic">¥0</div><h4>初期0・低価格・縛りなし</h4><p>代理店の月3〜5万・初期5万に対し、<b>月数千円から</b>。いつでも解約OK。</p></div>
+    </div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">11</div>
+</section>
+
+<!-- 12 COMPARE -->
+<section class="s">
+  <div class="head"><h2>他サービスとの違い</h2><div class="rule"></div></div>
+  <div class="body" style="display:flex; flex-direction:column; justify-content:center;">
+    <table class="t">
+      <thead><tr><th></th><th class="us">Sourire</th><th>一般のMEO代行</th><th>無料のChatGPT</th></tr></thead>
+      <tbody>
+        <tr><td class="row">料金</td><td class="us">月9,800円〜・初期0</td><td>月3〜5万・初期5万</td><td>0円</td></tr>
+        <tr><td class="row">歯科特化</td><td class="us">○</td><td>△</td><td>×</td></tr>
+        <tr><td class="row">自動・設定不要</td><td class="us">○</td><td>人が代行</td><td>毎回コピペ</td></tr>
+        <tr><td class="row">コンプラ配慮</td><td class="us">内蔵</td><td>会社による</td><td>自己責任</td></tr>
+      </tbody>
+    </table>
+    <div class="note">※ 一般的な比較イメージであり、特定他社を評価・保証するものではありません。</div>
+  </div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">12</div>
+</section>
+
+<!-- 13 DIV 04 -->
+<section class="s div"><div class="frame"></div><div class="num latin">04</div><div class="ttl">料金・導入の流れ</div><div class="logo latin">by <b>Sourirette</b></div></section>
+
+<!-- 14 PRICING -->
+<section class="s">
+  <div class="head"><h2>料金 <span style="font-size:15px; background:var(--warm-soft); color:var(--warm-d); padding:6px 16px; border-radius:20px; vertical-align:middle; font-weight:700;">初期0・縛りなし・初月無料</span></h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="price">
+      <div class="pcard">
+        <div class="pn">ライト</div>
+        <div class="amt">¥9,800<small>/月</small></div>
+        <ul><li>AI口コミ返信</li><li>AI MEO投稿（生成）</li><li>口コミ獲得QR</li></ul>
+      </div>
+      <div class="pcard hi">
+        <span class="tag">おすすめ</span>
+        <div class="pn">スタンダード</div>
+        <div class="amt">¥19,800<small>/月</small></div>
+        <ul><li>ライトの全機能</li><li>マップ順位・アクセスのレポート</li><li>メールサポート</li></ul>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute; left:72px; right:72px; bottom:52px; font-size:13px; color:var(--ink-f);">※ Google広告などの出稿費は別。Sourireは広告ゼロでも成果を出す「口コミ・マップ運用」に特化。</div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">14</div>
+</section>
+
+<!-- 15 FLOW -->
+<section class="s">
+  <div class="head"><h2>導入の流れ</h2><div class="rule"></div></div>
+  <div class="body">
+    <div class="flow">
+      <div class="fbox"><div class="fn latin">01</div><h4>お申し込み</h4><p>初月無料で開始。初期費用・契約縛りなし。</p></div>
+      <div class="arr">→</div>
+      <div class="fbox"><div class="fn latin">02</div><h4>Google接続</h4><p>医院のGoogleで1回アクセスを許可するだけ。レセコン連携不要。</p></div>
+      <div class="arr">→</div>
+      <div class="fbox"><div class="fn latin">03</div><h4>運用スタート</h4><p>AIが口コミ返信・投稿を自動で。数字はダッシュボードで。</p></div>
+    </div>
+  </div>
+  <div style="position:absolute; left:72px; right:72px; bottom:52px; font-size:12.5px; color:var(--ink-f);">※ 口コミのやらせ・低評価の選別はしません（ステマ規制・Googleポリシー遵守）。医療広告ガイドラインに配慮した運用です。</div>
+  <div class="logo latin">by <b>Sourirette</b></div><div class="pg latin">15</div>
+</section>
+
+<!-- 16 CTA -->
+<section class="s cta">
+  <div class="in">
+    <div class="tg">まずは初月無料で。</div>
+    <h2>口コミとGoogleマップから、<br/>新しい患者さんを。</h2>
+    <div class="c">
+      Sourire（歯科の口コミ・集患を、AIで）　by <b>Sourirette</b><br/>
+      <b>sourirette.consulting@gmail.com</b>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sourire — 歯科の口コミ・集患をAIで</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --p:#0E9AA7; --p-d:#0B7C87; --p-deep:#0A5E68; --p-soft:#D4ECEE; --p-tint:#E8F6F7;
+    --ink:#16323A; --ink-s:#4A636B; --ink-f:#8AA0A6; --line:#E6EDEF; --bg:#F4F8F9;
+    --warm:#F2785C; --warm-soft:#FDECE7; --gold:#F5B544;
+    --ok:#2BA17A; --shadow:0 8px 28px rgba(10,94,104,.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:"Zen Kaku Gothic New", system-ui, sans-serif; color:var(--ink); background:var(--bg);
+    font-feature-settings:"palt"; -webkit-font-smoothing:antialiased; }
+  .latin{ font-family:"Outfit", sans-serif; }
+  button{ font-family:inherit; cursor:pointer; }
+  textarea{ font-family:inherit; }
+
+  /* top bar */
+  .top{ height:62px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center;
+    padding:0 24px; gap:18px; position:sticky; top:0; z-index:20; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .mk{ width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--p),var(--p-d));
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-family:"Outfit"; }
+  .brand .wd{ font-family:"Outfit"; font-weight:700; font-size:21px; color:var(--p-deep); letter-spacing:.3px; }
+  .brand .tag{ font-size:11px; color:var(--ink-f); margin-top:1px; }
+  .top .clinic{ margin-left:auto; display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--ink-s); }
+  .top .clinic .av{ width:30px; height:30px; border-radius:50%; background:var(--p-tint); color:var(--p-d);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+
+  .layout{ display:flex; min-height:calc(100vh - 62px); }
+  .nav{ width:208px; background:#fff; border-right:1px solid var(--line); padding:18px 12px; flex-shrink:0; }
+  .nav a{ display:flex; align-items:center; gap:11px; padding:11px 14px; border-radius:11px; color:var(--ink-s);
+    font-size:14.5px; font-weight:500; text-decoration:none; margin-bottom:4px; user-select:none; }
+  .nav a .ni{ width:20px; text-align:center; }
+  .nav a.on{ background:var(--p-tint); color:var(--p-deep); font-weight:700; }
+  .nav a:hover:not(.on){ background:#F7FAFB; }
+  .nav .sep{ height:1px; background:var(--line); margin:14px 8px; }
+  .nav .note{ font-size:11px; color:var(--ink-f); padding:8px 14px; line-height:1.6; }
+
+  .main{ flex:1; padding:26px 30px; max-width:1080px; }
+  .ph{ font-size:24px; font-weight:700; color:var(--ink); }
+  .psub{ font-size:13.5px; color:var(--ink-f); margin-top:4px; margin-bottom:22px; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px; }
+  .kpi{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:var(--shadow); }
+  .kpi .l{ font-size:12.5px; color:var(--ink-f); }
+  .kpi .v{ font-family:"Outfit"; font-weight:700; font-size:30px; color:var(--ink); margin-top:4px; line-height:1; }
+  .kpi .d{ font-size:12px; font-weight:700; margin-top:7px; }
+  .kpi .d.up{ color:var(--ok); } .kpi .d.flat{ color:var(--ink-f); }
+  .star{ color:var(--gold); }
+
+  .panel{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .panel h3{ font-size:16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .panel h3 .pill{ font-size:11px; font-weight:700; color:var(--p-d); background:var(--p-tint); padding:3px 9px; border-radius:20px; }
+
+  /* bars */
+  .bars{ display:flex; align-items:flex-end; gap:14px; height:140px; padding-top:8px; }
+  .bar{ flex:1; display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .bar .col{ width:100%; max-width:42px; border-radius:7px 7px 0 0; background:linear-gradient(180deg,var(--p),var(--p-soft)); }
+  .bar .bl{ font-size:11px; color:var(--ink-f); } .bar .bn{ font-size:12px; font-weight:700; color:var(--p-deep); }
+
+  /* review card */
+  .rev{ border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:14px; background:#fff; }
+  .rev .rh{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .rev .who{ font-weight:700; font-size:14.5px; }
+  .rev .rs{ font-size:14px; letter-spacing:1px; }
+  .rev .rd{ font-size:12px; color:var(--ink-f); margin-left:auto; }
+  .rev .rt{ font-size:14px; color:var(--ink-s); line-height:1.8; }
+  .rev .badge{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px; }
+  .badge.new{ background:var(--warm-soft); color:#C0492F; }
+  .badge.low{ background:#FDECEC; color:#C53A3A; }
+  .reply{ margin-top:14px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .reply .rl{ font-size:12px; color:var(--p-d); font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .reply textarea{ width:100%; border:1px solid var(--line); border-radius:10px; padding:11px 13px; font-size:13.5px;
+    line-height:1.8; color:var(--ink); min-height:92px; resize:vertical; background:#fff; }
+  .reply textarea:focus{ outline:none; border-color:var(--p); box-shadow:0 0 0 3px var(--p-tint); }
+
+  .btn{ border:none; border-radius:11px; padding:10px 18px; font-size:13.5px; font-weight:700; display:inline-flex;
+    align-items:center; gap:7px; }
+  .btn-p{ background:var(--p); color:#fff; } .btn-p:hover{ background:var(--p-d); }
+  .btn-g{ background:#fff; color:var(--p-d); border:1.5px solid var(--p-soft); }
+  .btn-g:hover{ background:var(--p-tint); }
+  .btn-w{ background:var(--warm); color:#fff; } .btn-w:hover{ filter:brightness(.95); }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .btn-row{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .spin{ width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%;
+    display:inline-block; animation:sp .7s linear infinite; }
+  @keyframes sp{ to{ transform:rotate(360deg); } }
+
+  /* MEO */
+  .chips{ display:flex; flex-wrap:wrap; gap:9px; margin-bottom:8px; }
+  .chip{ border:1.5px solid var(--line); background:#fff; border-radius:22px; padding:8px 15px; font-size:13px;
+    color:var(--ink-s); font-weight:600; }
+  .chip.on{ border-color:var(--p); background:var(--p-tint); color:var(--p-deep); }
+  .gen-out{ margin-top:16px; }
+  .gen-out textarea{ width:100%; border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:14px;
+    line-height:1.9; min-height:170px; resize:vertical; }
+  .gen-out textarea:focus{ outline:none; border-color:var(--p); box-shadow:0 0 0 3px var(--p-tint); }
+
+  /* star tab */
+  .star-grid{ display:grid; grid-template-columns:280px 1fr; gap:24px; align-items:start; }
+  .qrbox{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px; text-align:center; box-shadow:var(--shadow); }
+  .qrbox canvas{ width:200px !important; height:200px !important; }
+  .qrbox .qt{ font-weight:700; margin-bottom:14px; }
+  .qrbox .qs{ font-size:12px; color:var(--ink-f); margin-top:12px; }
+  .script{ background:var(--p-tint); border:1px solid var(--p-soft); border-radius:12px; padding:14px 16px; font-size:14px;
+    color:var(--p-deep); line-height:1.9; }
+
+  /* settings form */
+  .fld{ margin-bottom:18px; }
+  .fld label{ display:block; font-size:13px; font-weight:700; color:var(--ink-s); margin-bottom:7px; }
+  .fld input{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; font-size:14.5px;
+    font-family:inherit; color:var(--ink); background:#fff; }
+  .fld input:focus{ outline:none; border-color:var(--p); box-shadow:0 0 0 3px var(--p-tint); }
+  .fld .hint{ font-size:12px; color:var(--ink-f); margin-top:6px; line-height:1.6; }
+
+  /* recall */
+  .pt{ border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:14px; background:#fff; }
+  .pt .ph2{ display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .pt .nm{ font-weight:700; font-size:15.5px; }
+  .pt .mo{ font-size:12px; font-weight:700; color:var(--warm-d); background:var(--warm-soft); padding:2px 10px; border-radius:20px; }
+  .pt .meta{ font-size:13px; color:var(--ink-s); margin-left:auto; }
+  .pt .catb{ font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px; color:#fff; }
+  .chsel{ border:1.5px solid var(--line); border-radius:9px; padding:7px 11px; font-size:13px; font-family:inherit; color:var(--ink-s); background:#fff; }
+  .upload{ display:inline-flex; align-items:center; gap:7px; border:1.5px dashed var(--p-soft); color:var(--p-d); background:var(--p-tint);
+    border-radius:11px; padding:10px 16px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .upload input{ display:none; }
+  .catchips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .catchip{ font-size:12.5px; font-weight:700; color:#fff; padding:5px 12px; border-radius:20px; }
+
+  .warn{ background:var(--warm-soft); border:1px solid #F3C9BD; border-radius:12px; padding:13px 16px; font-size:12.5px;
+    color:#9A3A22; line-height:1.8; margin-top:16px; }
+  .warn b{ color:#7A2A14; }
+  .demo-tag{ font-size:11px; color:var(--ink-f); background:#fff; border:1px dashed var(--line); border-radius:6px; padding:2px 8px; }
+
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink);
+    color:#fff; padding:12px 22px; border-radius:30px; font-size:13.5px; font-weight:600; opacity:0; pointer-events:none;
+    transition:.25s; z-index:50; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+  .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (max-width:760px){
+    .nav{ display:none; } .main{ padding:18px; } .kpis{ grid-template-columns:1fr 1fr; }
+    .star-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const DEFAULT_CLINIC = { name: "さくら歯科クリニック", area: "横浜市港北区", reviewUrl: "https://g.page/r/your-clinic/review" };
+function loadClinic(){
+  try{ const s = localStorage.getItem("sourire_clinic"); if(s) return {...DEFAULT_CLINIC, ...JSON.parse(s)}; }catch(_){}
+  return DEFAULT_CLINIC;
+}
+
+// サンプルの Google 口コミ（本番は Google ビジネスプロフィール API から取得）
+const REVIEWS = [
+  { id:1, who:"M. T.", rating:5, date:"2日前", new:true, text:"急な歯の痛みで予約しましたが、当日に丁寧に診てもらえました。説明も分かりやすく安心できました。" },
+  { id:2, who:"佐藤 ", rating:5, date:"5日前", new:true, text:"子どもの定期検診でお世話になっています。スタッフの方が優しくて、子どもも嫌がらずに通えています。" },
+  { id:3, who:"K. Yamada", rating:2, date:"1週間前", new:true, text:"待ち時間が長かったです。予約していたのに30分以上待ちました。診療自体は問題なかったです。" },
+  { id:4, who:"あおい", rating:4, date:"2週間前", new:false, text:"ホワイトニングの相談に行きました。料金もきちんと説明してくれて好印象でした。" },
+  { id:5, who:"R. Suzuki", rating:5, date:"3週間前", new:false, text:"歯石取りでお世話になりました。院内も清潔で、また定期的に通おうと思います。" },
+];
+const TREND = [ {m:"1月",n:30}, {m:"2月",n:33}, {m:"3月",n:36}, {m:"4月",n:39}, {m:"5月",n:43}, {m:"6月",n:48} ];
+const THEMES = ["定期検診・予防の大切さ","親知らずのよくある質問","院内の衛生・滅菌体制","ホワイトニングのご案内","お子さまの歯医者デビュー","年末年始の診療のお知らせ"];
+
+// しばらく来院がない患者（本番はレセコン/電子カルテからCSVで取り込み。デモ用サンプル）
+const PATIENTS = [
+  { id:1, name:"田中 花子", months:9,  last:"定期検診・クリーニング", cat:"定期検診切れ", tel:"090-xxxx-1234", ch:"SMS" },
+  { id:2, name:"鈴木 一郎", months:7,  last:"歯周治療（SPT）",        cat:"SPT中断",      tel:"080-xxxx-5678", ch:"LINE" },
+  { id:3, name:"山本 健",   months:13, last:"補綴（クラウン装着）",   cat:"補綴メンテ",   tel:"090-xxxx-9012", ch:"はがき" },
+  { id:4, name:"高橋 ゆうと", months:8, last:"フッ素塗布（小児）",     cat:"小児フッ素",   tel:"080-xxxx-3456", ch:"SMS" },
+  { id:5, name:"佐藤 美咲", months:6,  last:"CR充填（むし歯処置）",   cat:"経過観察",     tel:"090-xxxx-7890", ch:"SMS" },
+  { id:6, name:"伊藤 さくら", months:11,last:"スケーリング",           cat:"定期検診切れ", tel:"080-xxxx-2345", ch:"LINE" },
+];
+const CAT_COLORS = { "定期検診切れ":"var(--p)", "SPT中断":"var(--warm)", "補綴メンテ":"#5E6BC4", "小児フッ素":"#2BA17A", "経過観察":"#3A7FC4" };
+
+function Stars({ n }){
+  return <span className="rs">{"★".repeat(n)}<span style={{color:"#DCE3E5"}}>{"★".repeat(5-n)}</span></span>;
+}
+
+function App(){
+  const [tab, setTab] = useState("dash");
+  const [toast, setToast] = useState(null);
+  const [clinic, setClinic] = useState(loadClinic);
+  const tt = useRef(null);
+  const showToast = (m)=>{ setToast(m); if(tt.current) clearTimeout(tt.current); tt.current=setTimeout(()=>setToast(null),2200); };
+  const saveClinic = (c)=>{ setClinic(c); try{ localStorage.setItem("sourire_clinic", JSON.stringify(c)); }catch(_){} showToast("設定を保存しました"); };
+
+  const NAV = [
+    {k:"dash", i:"📊", t:"ダッシュボード"},
+    {k:"recall", i:"🔁", t:"リコール掘り起こし"},
+    {k:"rev",  i:"⭐", t:"口コミ管理"},
+    {k:"meo",  i:"📍", t:"MEO投稿"},
+    {k:"get",  i:"📈", t:"★を増やす"},
+    {k:"set",  i:"⚙️", t:"設定"},
+  ];
+
+  return (
+    <React.Fragment>
+      <div className="top">
+        <div className="brand">
+          <span className="mk latin">S</span>
+          <div><div className="wd">Sourire</div><div className="tag">歯科の口コミ・集患を、AIで自動運用 — by Sourirette</div></div>
+        </div>
+        <div className="clinic">
+          <span>{clinic.name}</span>
+          <span className="av">{(clinic.name||"医")[0]}</span>
+        </div>
+      </div>
+      <div className="layout">
+        <nav className="nav">
+          {NAV.map(n=>(
+            <a key={n.k} className={tab===n.k?"on":""} onClick={()=>setTab(n.k)}>
+              <span className="ni">{n.i}</span>{n.t}
+            </a>
+          ))}
+          <div className="sep"></div>
+          <div className="note">レセコン・電子カルテとの連携は不要。Googleの公開プロフィールだけで動きます。</div>
+        </nav>
+        <main className="main">
+          {tab==="dash" && <Dashboard clinic={clinic}/>}
+          {tab==="recall" && <Recall clinic={clinic} showToast={showToast}/>}
+          {tab==="rev" && <Reviews clinic={clinic} showToast={showToast}/>}
+          {tab==="meo" && <Meo clinic={clinic} showToast={showToast}/>}
+          {tab==="get" && <GetStars clinic={clinic}/>}
+          {tab==="set" && <Settings clinic={clinic} onSave={saveClinic}/>}
+        </main>
+      </div>
+      <div className={"toast"+(toast?" on":"")}>{toast||""}</div>
+    </React.Fragment>
+  );
+}
+
+function Settings({ clinic, onSave }){
+  const [f, setF] = useState(clinic);
+  const set = (k,v)=> setF(s=>({...s,[k]:v}));
+  return (
+    <React.Fragment>
+      <div className="ph">設定</div>
+      <div className="psub">医院の情報を登録すると、口コミ返信・MEO投稿・QRに反映されます。</div>
+      <div className="panel" style={{maxWidth:560}}>
+        <div className="fld"><label>医院名</label>
+          <input value={f.name||""} onChange={e=>set("name",e.target.value)} placeholder="〇〇歯科クリニック"/></div>
+        <div className="fld"><label>地域（市区町村）</label>
+          <input value={f.area||""} onChange={e=>set("area",e.target.value)} placeholder="横浜市港北区"/></div>
+        <div className="fld"><label>Google 口コミ投稿用 URL</label>
+          <input value={f.reviewUrl||""} onChange={e=>set("reviewUrl",e.target.value)} placeholder="https://g.page/r/.../review"/>
+          <div className="hint">Googleビジネスプロフィールの「クチコミを増やす」から取得できる短縮URL。★を増やすタブのQRに使われます。</div></div>
+        <div className="btn-row"><button className="btn btn-p" onClick={()=>onSave(f)}>保存する</button></div>
+      </div>
+      <div className="panel" style={{maxWidth:560}}>
+        <h3>Google ビジネスプロフィール連携 <span className="pill">本番</span></h3>
+        <div style={{fontSize:14,color:"var(--ink-s)",lineHeight:1.9}}>
+          現在はデモ用のサンプルデータで動作しています。本番では、医院のGoogleアカウントで
+          <b>アクセスを1回許可</b>するだけで、口コミ取得・自動返信・順位/アクセスの取得が有効になります
+          （GoogleビジネスプロフィールAPI・利用申請中）。<b>レセコン・電子カルテとの連携は不要</b>です。
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function Recall({ clinic, showToast }){
+  const [patients, setPatients] = useState(PATIENTS);
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState({});
+  const [sent, setSent] = useState({});
+  const [chan, setChan] = useState({});
+
+  const total = patients.length;
+  const sentCount = Object.values(sent).filter(Boolean).length;
+  const cats = {};
+  patients.forEach(p=>{ cats[p.cat]=(cats[p.cat]||0)+1; });
+
+  const gen = async (p)=>{
+    setBusy(b=>({...b,[p.id]:true}));
+    try{
+      const channel = chan[p.id]||p.ch;
+      const res = await fetch("/api/recall",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ name:p.name, months:p.months, last:p.last, category:p.cat, channel, clinic:clinic.name }) });
+      const d = await res.json();
+      if(!res.ok) throw new Error(d.error||"生成に失敗しました");
+      setDrafts(s=>({...s,[p.id]:d.text}));
+    }catch(e){ showToast(e.message); }
+    finally{ setBusy(b=>({...b,[p.id]:false})); }
+  };
+  const send = (id)=>{ setSent(s=>({...s,[id]:true})); showToast("送信しました（デモ）"); };
+
+  const onCsv = (e)=>{
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const lines = String(r.result).split(/\r?\n/).filter(l=>l.trim());
+        if(!lines.length) return;
+        const head = lines[0];
+        const rows = (head.includes("氏名")||head.toLowerCase().includes("name")) ? lines.slice(1) : lines;
+        const ps = rows.map((l,i)=>{ const c=l.split(",").map(x=>x.trim());
+          return { id:1000+i, name:c[0]||"患者"+(i+1), months:parseInt(c[1])||6, last:c[2]||"前回処置", cat:c[3]||"定期検診切れ", tel:c[4]||"", ch:"SMS" }; });
+        if(ps.length){ setPatients(ps); setDrafts({}); setSent({}); showToast(ps.length+"名を取り込みました"); }
+      }catch(_){ showToast("CSVの読み込みに失敗しました"); }
+    };
+    r.readAsText(f, "utf-8");
+  };
+
+  return (
+    <React.Fragment>
+      <div className="ph">リコール掘り起こし</div>
+      <div className="psub">来なくなった患者さんを、AIがひとりずつ呼び戻す。新規集患より安く・確実に。<span className="demo-tag">レセコン連携不要・CSV取込</span></div>
+
+      <div className="kpis" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="kpi"><div className="l">掘り起こし対象</div><div className="v" style={{color:"var(--warm)"}}>{total}<span style={{fontSize:16}}>名</span></div><div className="d flat">6ヶ月以上 未来院</div></div>
+        <div className="kpi"><div className="l">送信済み</div><div className="v">{sentCount}<span style={{fontSize:16}}>名</span></div><div className="d flat">{total-sentCount}名 未送信</div></div>
+        <div className="kpi"><div className="l">推定 再来院（目安）</div><div className="v" style={{color:"var(--ok)"}}>＋{Math.round(sentCount*0.3)}<span style={{fontSize:16}}>名</span></div><div className="d up">再来院率 約30%想定</div></div>
+      </div>
+
+      <div className="panel">
+        <h3>名簿の取り込み <span className="pill">サンプル表示中</span></h3>
+        <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+          <label className="upload">📄 患者名簿CSVを取り込む<input type="file" accept=".csv" onChange={onCsv}/></label>
+          <span style={{fontSize:13,color:"var(--ink-f)"}}>列：氏名, 最終来院からの月数, 前回の内容, 区分, 連絡先</span>
+        </div>
+        <div className="catchips">
+          {Object.keys(cats).map(c=>(
+            <span key={c} className="catchip" style={{background:CAT_COLORS[c]||"var(--p)"}}>{c} {cats[c]}名</span>
+          ))}
+        </div>
+      </div>
+
+      {patients.map(p=>(
+        <div className="pt" key={p.id}>
+          <div className="ph2">
+            <span className="nm">{p.name} 様</span>
+            <span className="mo">{p.months}ヶ月 未来院</span>
+            <span className="catb" style={{background:CAT_COLORS[p.cat]||"var(--p)"}}>{p.cat}</span>
+            <span className="meta">前回：{p.last}</span>
+          </div>
+          {!drafts[p.id] && !sent[p.id] && (
+            <div className="btn-row">
+              <select className="chsel" value={chan[p.id]||p.ch} onChange={e=>setChan(s=>({...s,[p.id]:e.target.value}))}>
+                <option>SMS</option><option>LINE</option><option>はがき</option>
+              </select>
+              <button className="btn btn-p" disabled={busy[p.id]} onClick={()=>gen(p)}>
+                {busy[p.id] ? <React.Fragment><span className="spin"></span> 生成中…</React.Fragment> : "✨ AIで文面を作成"}
+              </button>
+            </div>
+          )}
+          {drafts[p.id] && (
+            <div className="reply">
+              <div className="rl">✨ {chan[p.id]||p.ch} 用のリコール文面（修正OK）</div>
+              <textarea value={drafts[p.id]} onChange={e=>setDrafts(s=>({...s,[p.id]:e.target.value}))} disabled={sent[p.id]}/>
+              <div className="btn-row">
+                {!sent[p.id]
+                  ? <React.Fragment>
+                      <button className="btn btn-p" onClick={()=>send(p.id)}>{chan[p.id]||p.ch}で送信</button>
+                      <button className="btn btn-g" disabled={busy[p.id]} onClick={()=>gen(p)}>作り直す</button>
+                    </React.Fragment>
+                  : <span style={{color:"var(--ok)",fontSize:13,fontWeight:700}}>✓ 送信済み（デモ）</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div className="warn">
+        <b>※</b> 患者名簿は<b>医院内で取り扱い</b>、外部に持ち出さない設計です（個人情報・委託）。本番では電子カルテ/レセコンの「未来院リスト」CSVをそのまま取り込めます。送信は不安を煽らず、治療効果を断定しない文面（医療広告ガイドライン配慮）。
+      </div>
+    </React.Fragment>
+  );
+}
+
+function Dashboard({ clinic }){
+  const unreplied = REVIEWS.filter(r=>r.new).length;
+  const max = Math.max(...TREND.map(t=>t.n));
+  return (
+    <React.Fragment>
+      <div className="ph">ダッシュボード</div>
+      <div className="psub">{clinic.name}（{clinic.area}）・Googleビジネスプロフィール</div>
+      <div className="kpis">
+        <div className="kpi"><div className="l">口コミ件数</div><div className="v">48</div><div className="d up">▲ 今月 +5</div></div>
+        <div className="kpi"><div className="l">★平均</div><div className="v"><span className="star">★</span> 4.3</div><div className="d up">▲ +0.2</div></div>
+        <div className="kpi"><div className="l">マップ表示順位<br/><span style={{fontSize:10}}>「{clinic.area} 歯医者」</span></div><div className="v">5<span style={{fontSize:16}}>位</span></div><div className="d up">▲ 8位→5位</div></div>
+        <div className="kpi"><div className="l">未返信の口コミ</div><div className="v" style={{color:"var(--warm)"}}>{unreplied}</div><div className="d flat">要対応</div></div>
+      </div>
+      <div className="panel">
+        <h3>口コミ件数の推移 <span className="pill">過去6ヶ月</span></h3>
+        <div className="bars">
+          {TREND.map(t=>(
+            <div className="bar" key={t.m}>
+              <div className="bn">{t.n}</div>
+              <div className="col" style={{height:(t.n/max*100)+"px"}}></div>
+              <div className="bl">{t.m}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="panel">
+        <h3>最近の口コミ</h3>
+        {REVIEWS.slice(0,3).map(r=>(
+          <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid var(--line)"}}>
+            <Stars n={r.rating}/>
+            <span style={{fontSize:13.5,color:"var(--ink-s)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{r.text}</span>
+            <span style={{fontSize:12,color:"var(--ink-f)"}}>{r.date}</span>
+          </div>
+        ))}
+      </div>
+    </React.Fragment>
+  );
+}
+
+function Reviews({ clinic, showToast }){
+  const [drafts, setDrafts] = useState({});   // id -> text
+  const [busy, setBusy] = useState({});       // id -> bool
+  const [posted, setPosted] = useState({});   // id -> bool
+
+  const gen = async (r)=>{
+    setBusy(b=>({...b,[r.id]:true}));
+    try{
+      const res = await fetch("/api/reply",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ review:r.text, rating:r.rating, clinic:clinic.name, area:clinic.area }) });
+      const d = await res.json();
+      if(!res.ok) throw new Error(d.error||"生成に失敗しました");
+      setDrafts(s=>({...s,[r.id]:d.text}));
+    }catch(e){ showToast(e.message); }
+    finally{ setBusy(b=>({...b,[r.id]:false})); }
+  };
+  const setDraft = (id,v)=> setDrafts(s=>({...s,[id]:v}));
+  const post = (id)=>{ setPosted(p=>({...p,[id]:true})); showToast("返信を投稿しました（デモ）"); };
+
+  return (
+    <React.Fragment>
+      <div className="ph">口コミ管理</div>
+      <div className="psub">新着の口コミにAIが返信案を作成。確認・修正して投稿するだけ。<span className="demo-tag">本番はGoogleへ自動投稿</span></div>
+      {REVIEWS.map(r=>(
+        <div className="rev" key={r.id}>
+          <div className="rh">
+            <span className="who">{r.who}</span>
+            <Stars n={r.rating}/>
+            {r.new && <span className="badge new">新着・未返信</span>}
+            {r.rating<=2 && <span className="badge low">要・丁寧対応</span>}
+            <span className="rd">{r.date}</span>
+          </div>
+          <div className="rt">{r.text}</div>
+
+          {!drafts[r.id] && !posted[r.id] && (
+            <div className="btn-row">
+              <button className="btn btn-p" disabled={busy[r.id]} onClick={()=>gen(r)}>
+                {busy[r.id] ? <React.Fragment><span className="spin"></span> 生成中…</React.Fragment> : "✨ AIで返信案を作成"}
+              </button>
+            </div>
+          )}
+
+          {drafts[r.id] && (
+            <div className="reply">
+              <div className="rl">✨ AIの返信案（医院トーンに直してOK）</div>
+              <textarea value={drafts[r.id]} onChange={e=>setDraft(r.id,e.target.value)} disabled={posted[r.id]}/>
+              <div className="btn-row">
+                {!posted[r.id]
+                  ? <React.Fragment>
+                      <button className="btn btn-p" onClick={()=>post(r.id)}>Googleに返信を投稿</button>
+                      <button className="btn btn-g" disabled={busy[r.id]} onClick={()=>gen(r)}>別案を生成</button>
+                    </React.Fragment>
+                  : <span style={{color:"var(--ok)",fontSize:13,fontWeight:700}}>✓ 投稿済み（デモ）</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <div className="warn">
+        <b>※ コンプラ：</b>口コミの「やらせ・購入・低評価の隠し」は禁止（ステマ規制・Googleポリシー）。返信では治療効果を断定しない（医療広告ガイドライン）。本ツールは<b>正当な返信と獲得導線のみ</b>を支援します。
+      </div>
+    </React.Fragment>
+  );
+}
+
+function Meo({ clinic, showToast }){
+  const [theme, setTheme] = useState(THEMES[0]);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const gen = async ()=>{
+    setBusy(true);
+    try{
+      const res = await fetch("/api/post",{ method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ theme, clinic:clinic.name, area:clinic.area }) });
+      const d = await res.json();
+      if(!res.ok) throw new Error(d.error||"生成に失敗しました");
+      setText(d.text);
+    }catch(e){ showToast(e.message); }
+    finally{ setBusy(false); }
+  };
+  return (
+    <React.Fragment>
+      <div className="ph">MEO投稿（Googleビジネスプロフィール）</div>
+      <div className="psub">テーマを選ぶとAIが投稿文を作成。毎月8本を予約投稿してマップ露出を維持。</div>
+      <div className="panel">
+        <h3>テーマを選ぶ</h3>
+        <div className="chips">
+          {THEMES.map(t=>(
+            <div key={t} className={"chip"+(theme===t?" on":"")} onClick={()=>setTheme(t)}>{t}</div>
+          ))}
+        </div>
+        <div className="btn-row">
+          <button className="btn btn-p" disabled={busy} onClick={gen}>
+            {busy ? <React.Fragment><span className="spin"></span> 生成中…</React.Fragment> : "✨ AIで投稿文を作成"}
+          </button>
+        </div>
+        {text && (
+          <div className="gen-out">
+            <textarea value={text} onChange={e=>setText(e.target.value)}/>
+            <div className="btn-row">
+              <button className="btn btn-p" onClick={()=>showToast("投稿を予約しました（デモ）")}>予約投稿</button>
+              <button className="btn btn-g" onClick={gen} disabled={busy}>作り直す</button>
+              <button className="btn btn-g" onClick={()=>{navigator.clipboard&&navigator.clipboard.writeText(text); showToast("コピーしました");}}>コピー</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="warn"><b>※</b> 投稿は医療広告ガイドラインに配慮（治療効果の断定・体験談・誇大はNG）。AIが自動で配慮した文面を生成します。</div>
+    </React.Fragment>
+  );
+}
+
+function GetStars({ clinic }){
+  const cv = useRef(null);
+  useEffect(()=>{
+    if(cv.current && window.QRCode){
+      window.QRCode.toCanvas(cv.current, clinic.reviewUrl, { width:200, margin:1,
+        color:{ dark:"#0A5E68", light:"#ffffff" } });
+    }
+  },[]);
+  return (
+    <React.Fragment>
+      <div className="ph">★を増やす（口コミ獲得）</div>
+      <div className="psub">来院した患者さんに“正当に”口コミをお願いする導線。受付に置くだけ。</div>
+      <div className="star-grid">
+        <div className="qrbox">
+          <div className="qt">口コミQRコード</div>
+          <canvas ref={cv}></canvas>
+          <div className="qs">読み取ると、医院のGoogle<br/>口コミ投稿ページが開きます</div>
+        </div>
+        <div>
+          <div className="panel" style={{marginBottom:14}}>
+            <h3>受付での一言（スタッフ用）</h3>
+            <div className="script">「もしよろしければ、こちらのQRから感想をいただけると、同じように悩む方の参考になります。よろしければで大丈夫です😊」</div>
+          </div>
+          <div className="panel">
+            <h3>置き方のコツ</h3>
+            <div style={{fontSize:14,color:"var(--ink-s)",lineHeight:2}}>
+              ・会計時にカードやPOPでQRを提示<br/>
+              ・満足してくれた患者さんにだけ“お願い”（強制しない）<br/>
+              ・★が増えるとマップ順位が上がり、新患の電話が増える
+            </div>
+          </div>
+          <div className="warn">
+            <b>※ 必ず守る：</b>謝礼での口コミ依頼・サクラ・低評価の選別（gating）は<b>違法/規約違反</b>。
+            「来院者に等しく案内する」までが正当。Souriretteは正攻法だけで伸ばします。
+          </div>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
