@@ -112,6 +112,14 @@
   .script{ background:var(--p-tint); border:1px solid var(--p-soft); border-radius:12px; padding:14px 16px; font-size:14px;
     color:var(--p-deep); line-height:1.9; }
 
+  /* settings form */
+  .fld{ margin-bottom:18px; }
+  .fld label{ display:block; font-size:13px; font-weight:700; color:var(--ink-s); margin-bottom:7px; }
+  .fld input{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; font-size:14.5px;
+    font-family:inherit; color:var(--ink); background:#fff; }
+  .fld input:focus{ outline:none; border-color:var(--p); box-shadow:0 0 0 3px var(--p-tint); }
+  .fld .hint{ font-size:12px; color:var(--ink-f); margin-top:6px; line-height:1.6; }
+
   .warn{ background:var(--warm-soft); border:1px solid #F3C9BD; border-radius:12px; padding:13px 16px; font-size:12.5px;
     color:#9A3A22; line-height:1.8; margin-top:16px; }
   .warn b{ color:#7A2A14; }
@@ -139,7 +147,11 @@
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-const CLINIC = { name: "さくら歯科クリニック", area: "横浜市港北区", reviewUrl: "https://g.page/r/sakura-dental-demo/review" };
+const DEFAULT_CLINIC = { name: "さくら歯科クリニック", area: "横浜市港北区", reviewUrl: "https://g.page/r/your-clinic/review" };
+function loadClinic(){
+  try{ const s = localStorage.getItem("sourire_clinic"); if(s) return {...DEFAULT_CLINIC, ...JSON.parse(s)}; }catch(_){}
+  return DEFAULT_CLINIC;
+}
 
 // サンプルの Google 口コミ（本番は Google ビジネスプロフィール API から取得）
 const REVIEWS = [
@@ -159,14 +171,17 @@ function Stars({ n }){
 function App(){
   const [tab, setTab] = useState("dash");
   const [toast, setToast] = useState(null);
+  const [clinic, setClinic] = useState(loadClinic);
   const tt = useRef(null);
   const showToast = (m)=>{ setToast(m); if(tt.current) clearTimeout(tt.current); tt.current=setTimeout(()=>setToast(null),2200); };
+  const saveClinic = (c)=>{ setClinic(c); try{ localStorage.setItem("sourire_clinic", JSON.stringify(c)); }catch(_){} showToast("設定を保存しました"); };
 
   const NAV = [
     {k:"dash", i:"📊", t:"ダッシュボード"},
     {k:"rev",  i:"⭐", t:"口コミ管理"},
     {k:"meo",  i:"📍", t:"MEO投稿"},
     {k:"get",  i:"📈", t:"★を増やす"},
+    {k:"set",  i:"⚙️", t:"設定"},
   ];
 
   return (
@@ -177,8 +192,8 @@ function App(){
           <div><div className="wd">Sourire</div><div className="tag">歯科の口コミ・集患を、AIで自動運用 — by Sourirette</div></div>
         </div>
         <div className="clinic">
-          <span>{CLINIC.name}</span>
-          <span className="av">さ</span>
+          <span>{clinic.name}</span>
+          <span className="av">{(clinic.name||"医")[0]}</span>
         </div>
       </div>
       <div className="layout">
@@ -192,10 +207,11 @@ function App(){
           <div className="note">レセコン・電子カルテとの連携は不要。Googleの公開プロフィールだけで動きます。</div>
         </nav>
         <main className="main">
-          {tab==="dash" && <Dashboard/>}
-          {tab==="rev" && <Reviews showToast={showToast}/>}
-          {tab==="meo" && <Meo showToast={showToast}/>}
-          {tab==="get" && <GetStars/>}
+          {tab==="dash" && <Dashboard clinic={clinic}/>}
+          {tab==="rev" && <Reviews clinic={clinic} showToast={showToast}/>}
+          {tab==="meo" && <Meo clinic={clinic} showToast={showToast}/>}
+          {tab==="get" && <GetStars clinic={clinic}/>}
+          {tab==="set" && <Settings clinic={clinic} onSave={saveClinic}/>}
         </main>
       </div>
       <div className={"toast"+(toast?" on":"")}>{toast||""}</div>
@@ -203,18 +219,46 @@ function App(){
   );
 }
 
-function Dashboard(){
+function Settings({ clinic, onSave }){
+  const [f, setF] = useState(clinic);
+  const set = (k,v)=> setF(s=>({...s,[k]:v}));
+  return (
+    <React.Fragment>
+      <div className="ph">設定</div>
+      <div className="psub">医院の情報を登録すると、口コミ返信・MEO投稿・QRに反映されます。</div>
+      <div className="panel" style={{maxWidth:560}}>
+        <div className="fld"><label>医院名</label>
+          <input value={f.name||""} onChange={e=>set("name",e.target.value)} placeholder="〇〇歯科クリニック"/></div>
+        <div className="fld"><label>地域（市区町村）</label>
+          <input value={f.area||""} onChange={e=>set("area",e.target.value)} placeholder="横浜市港北区"/></div>
+        <div className="fld"><label>Google 口コミ投稿用 URL</label>
+          <input value={f.reviewUrl||""} onChange={e=>set("reviewUrl",e.target.value)} placeholder="https://g.page/r/.../review"/>
+          <div className="hint">Googleビジネスプロフィールの「クチコミを増やす」から取得できる短縮URL。★を増やすタブのQRに使われます。</div></div>
+        <div className="btn-row"><button className="btn btn-p" onClick={()=>onSave(f)}>保存する</button></div>
+      </div>
+      <div className="panel" style={{maxWidth:560}}>
+        <h3>Google ビジネスプロフィール連携 <span className="pill">本番</span></h3>
+        <div style={{fontSize:14,color:"var(--ink-s)",lineHeight:1.9}}>
+          現在はデモ用のサンプルデータで動作しています。本番では、医院のGoogleアカウントで
+          <b>アクセスを1回許可</b>するだけで、口コミ取得・自動返信・順位/アクセスの取得が有効になります
+          （GoogleビジネスプロフィールAPI・利用申請中）。<b>レセコン・電子カルテとの連携は不要</b>です。
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function Dashboard({ clinic }){
   const unreplied = REVIEWS.filter(r=>r.new).length;
-  const avg = (REVIEWS.reduce((s,r)=>s+r.rating,0)/REVIEWS.length).toFixed(1);
   const max = Math.max(...TREND.map(t=>t.n));
   return (
     <React.Fragment>
       <div className="ph">ダッシュボード</div>
-      <div className="psub">{CLINIC.name}（{CLINIC.area}）・Googleビジネスプロフィール</div>
+      <div className="psub">{clinic.name}（{clinic.area}）・Googleビジネスプロフィール</div>
       <div className="kpis">
         <div className="kpi"><div className="l">口コミ件数</div><div className="v">48</div><div className="d up">▲ 今月 +5</div></div>
         <div className="kpi"><div className="l">★平均</div><div className="v"><span className="star">★</span> 4.3</div><div className="d up">▲ +0.2</div></div>
-        <div className="kpi"><div className="l">マップ表示順位<br/><span style={{fontSize:10}}>「{CLINIC.area} 歯医者」</span></div><div className="v">5<span style={{fontSize:16}}>位</span></div><div className="d up">▲ 8位→5位</div></div>
+        <div className="kpi"><div className="l">マップ表示順位<br/><span style={{fontSize:10}}>「{clinic.area} 歯医者」</span></div><div className="v">5<span style={{fontSize:16}}>位</span></div><div className="d up">▲ 8位→5位</div></div>
         <div className="kpi"><div className="l">未返信の口コミ</div><div className="v" style={{color:"var(--warm)"}}>{unreplied}</div><div className="d flat">要対応</div></div>
       </div>
       <div className="panel">
@@ -243,7 +287,7 @@ function Dashboard(){
   );
 }
 
-function Reviews({ showToast }){
+function Reviews({ clinic, showToast }){
   const [drafts, setDrafts] = useState({});   // id -> text
   const [busy, setBusy] = useState({});       // id -> bool
   const [posted, setPosted] = useState({});   // id -> bool
@@ -252,7 +296,7 @@ function Reviews({ showToast }){
     setBusy(b=>({...b,[r.id]:true}));
     try{
       const res = await fetch("/api/reply",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ review:r.text, rating:r.rating, clinic:CLINIC.name, area:CLINIC.area }) });
+        body: JSON.stringify({ review:r.text, rating:r.rating, clinic:clinic.name, area:clinic.area }) });
       const d = await res.json();
       if(!res.ok) throw new Error(d.error||"生成に失敗しました");
       setDrafts(s=>({...s,[r.id]:d.text}));
@@ -308,7 +352,7 @@ function Reviews({ showToast }){
   );
 }
 
-function Meo({ showToast }){
+function Meo({ clinic, showToast }){
   const [theme, setTheme] = useState(THEMES[0]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -316,7 +360,7 @@ function Meo({ showToast }){
     setBusy(true);
     try{
       const res = await fetch("/api/post",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ theme, clinic:CLINIC.name, area:CLINIC.area }) });
+        body: JSON.stringify({ theme, clinic:clinic.name, area:clinic.area }) });
       const d = await res.json();
       if(!res.ok) throw new Error(d.error||"生成に失敗しました");
       setText(d.text);
@@ -355,11 +399,11 @@ function Meo({ showToast }){
   );
 }
 
-function GetStars(){
+function GetStars({ clinic }){
   const cv = useRef(null);
   useEffect(()=>{
     if(cv.current && window.QRCode){
-      window.QRCode.toCanvas(cv.current, CLINIC.reviewUrl, { width:200, margin:1,
+      window.QRCode.toCanvas(cv.current, clinic.reviewUrl, { width:200, margin:1,
         color:{ dark:"#0A5E68", light:"#ffffff" } });
     }
   },[]);
