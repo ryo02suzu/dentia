@@ -109,6 +109,39 @@ app.post("/api/post", async (req, res) => {
   }
 });
 
+/* ---- リコール（離脱・未来院患者の掘り起こし）文面の生成 ---- */
+const RECALL_SYSTEM = `あなたは日本の歯科医院の受付担当として、しばらく来院がない患者さんへ、定期検診・メンテナンスの再来院をうながす短いメッセージを作成します。
+# 必ず守る制約
+- 押し付けがましくしない。「お変わりないですか」等の気づかい＋「定期的なチェックが予防になります」＋「ご予約お待ちしています」を基本構成に。
+- 不安を煽らない／治療効果を断定しない（医療広告ガイドライン配慮）。病名や具体的治療内容は書かない。
+- 前回の処置内容・経過期間に自然に触れて個別感を出す（例：定期検診から/詰め物の経過/歯周のメンテ/お子さまのフッ素）。
+- 媒体に合わせる：SMSは70字前後、LINEは120字前後、はがきは少し丁寧に150字前後。
+- 予約方法を1つ入れる（電話／LINE／Web）。医院名と一言の温かさ。
+本文のみを出力し、前置きや説明は付けない。`;
+
+app.post("/api/recall", async (req, res) => {
+  const { name, months, last, category, channel, clinic } = req.body || {};
+  const c = client();
+  if (!c) return res.status(500).json({ error: "ANTHROPIC_API_KEY が未設定です。" });
+  const user =
+    `# 医院名\n${clinic || "（医院名）"}\n` +
+    `# 患者さん\nお名前：${name || "（患者名）"} 様\n最終来院：約${months || "?"}ヶ月前\n前回の内容：${last || "不明"}\n区分：${category || ""}\n` +
+    `# 媒体\n${channel || "SMS"}\n\n` +
+    `上記の患者さんへ送る、再来院をうながすメッセージを作成してください。`;
+  try {
+    const m = await c.messages.create({
+      model: MODEL,
+      max_tokens: 500,
+      system: RECALL_SYSTEM,
+      messages: [{ role: "user", content: user }],
+    });
+    const t = (m.content.find((b) => b.type === "text") || {}).text || "";
+    return res.json({ text: t.trim() });
+  } catch (e) {
+    return res.status(e.status || 500).json({ error: e.message || "生成に失敗しました。" });
+  }
+});
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // 静的配信は index.html のみ
