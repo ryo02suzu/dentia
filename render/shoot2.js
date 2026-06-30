@@ -8,9 +8,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const CONVO_PERIO =
   "患者）歯ぐきから血が出て、口臭も気になります。歯みがきのときに毎回出血します。\n" +
-  "歯科医師）歯周精密検査をしますね。#16、頬側 近心3・中央2・遠心4、舌側 3・3・5、遠心にBOP陽性、動揺度1。\n" +
-  "歯科医師）#26、頬側 4・3・5、舌側 3・4・6、頬側遠心にBOP、動揺度1。臼歯部に縁下歯石を認めます。\n" +
-  "歯科医師）PCRは42%。喫煙は1日10本くらいですね。";
+  "歯科医師）本日は歯周精密検査です。全顎を6点法で計測していきますね。\n" +
+  "#16、頬側 近心3・中央2・遠心4、舌側 3・3・5、遠心にBOP陽性、動揺度1。\n" +
+  "#17、頬側 3・3・4、舌側 3・2・3、BOP陽性。\n" +
+  "#26、頬側 4・3・5、舌側 3・4・6、頬側遠心にBOP、動揺度1。\n" +
+  "#27、頬側 3・4・5、舌側 4・3・4。……（全顎を同様に計測）\n" +
+  "歯科医師）PCRは42%。臼歯部に縁下歯石を認めます。喫煙は1日10本くらいですね。";
 
 (async () => {
   const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
@@ -28,6 +31,7 @@ const CONVO_PERIO =
   await page.getByRole("button", { name: /歯周精密検査/ }).click();
   await sleep(200);
   await page.locator("#convo").fill(CONVO_PERIO);
+  await page.locator("#convo").evaluate((el) => { el.scrollTop = 0; el.blur(); });
   await sleep(150);
   await page.getByRole("button", { name: /のSOAPを生成|SOAPを生成/ }).first().click();
   await page.getByRole("button", { name: /QRで転記/ }).waitFor({ timeout: 15000 });
