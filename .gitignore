@@ -7,4 +7,5 @@ npm-debug.log*
 # Deck render harness: third-party libs & generated/duplicate files
 render/vendor/
 render/shots/
+render/sourire-shots/
 render/index.local.html
