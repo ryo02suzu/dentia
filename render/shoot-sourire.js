@@ -25,6 +25,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   // star tab
   await p.locator(".nav a",{hasText:"を増やす"}).click(); await sleep(700);
   await p.screenshot({path:path.join(OUT,"4-getstars.png")});
+  await p.locator(".nav a",{hasText:"設定"}).click(); await sleep(500);
+  await p.screenshot({path:path.join(OUT,"6-settings.png")});
   // mobile dashboard
   await ctx.close();
   const m=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true});
